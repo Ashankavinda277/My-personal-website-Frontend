@@ -20,16 +20,15 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({
-  
+
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
-            <Navbar />
-      
       <body className={`${inter.variable} ${jetMono.variable} antialiased`}>
+        <Navbar />
         {children}
       </body>
     </html>
