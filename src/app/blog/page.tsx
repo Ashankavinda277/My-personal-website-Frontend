@@ -4,6 +4,7 @@ import api from "../../utils/api";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Clock, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { formatDate, calculateReadTime } from "../../utils/format";
 
 interface Blog {
     _id?: string;
@@ -183,8 +184,14 @@ export default function BlogPage() {
                                             <div className="blog-content">
                                                 <div className="blog-meta">
                                                     {blog.type && <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-xs">{blog.type}</span>}
-                                                    <div className="blog-meta-item"><Calendar size={12} /> Today</div>
-                                                    <div className="blog-meta-item"><Clock size={12} /> 5 min read</div>
+                                                    <div className="blog-meta-item">
+                                                        <Calendar size={12} />
+                                                        {formatDate(blog.created_at)}
+                                                    </div>
+                                                    <div className="blog-meta-item">
+                                                        <Clock size={12} />
+                                                        {calculateReadTime(blog.content)}
+                                                    </div>
                                                 </div>
 
                                                 <h3 className="blog-title">

@@ -4,6 +4,7 @@ import api from "../utils/api";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
+import { formatDate, calculateReadTime } from "../utils/format";
 
 interface Blog {
   _id?: string;
@@ -101,9 +102,14 @@ export default function BlogList() {
                     <div className="blog-content">
                       <div className="blog-meta">
                         {b.type && <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10">{b.type}</span>}
-                        {/* Placeholder dates if not from API */}
-                        <div className="blog-meta-item"><Calendar size={12} /> Today</div>
-                        <div className="blog-meta-item"><Clock size={12} /> 5 min read</div>
+                        <div className="blog-meta-item">
+                          <Calendar size={12} />
+                          {formatDate(b.created_at)}
+                        </div>
+                        <div className="blog-meta-item">
+                          <Clock size={12} />
+                          {calculateReadTime(b.content)}
+                        </div>
                       </div>
 
                       <h3 className="blog-title">
