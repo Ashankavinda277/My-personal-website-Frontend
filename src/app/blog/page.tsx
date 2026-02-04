@@ -12,7 +12,6 @@ interface Blog {
     title: string;
     content?: string;
     cover_image?: string;
-    image_url?: string;  // Added for Cloudinary URL
     type?: string;
     created_at?: string;
 }
