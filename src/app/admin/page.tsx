@@ -107,7 +107,7 @@ export default function AdminPage() {
       const finalType = customType || selectedType;
       if (finalType) form.append("type", finalType);
 
-      if (coverFile) form.append("cover", coverFile);
+      if (coverFile) form.append("image", coverFile);  // Changed from "cover" to "image"
 
       if (editingId) {
         await api.put(`/blogs/${editingId}`, form);
