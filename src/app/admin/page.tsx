@@ -30,6 +30,10 @@ export default function AdminPage() {
   const [newCatName, setNewCatName] = useState("");
   const [newCatImage, setNewCatImage] = useState<File | null>(null);
 
+  // Inline Editing State
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  const [tempCatName, setTempCatName] = useState("");
+
   const [msg, setMsg] = useState("");
   const [catMsg, setCatMsg] = useState("");
 
@@ -66,33 +70,7 @@ export default function AdminPage() {
     router.push("/auth/login");
   };
 
-  const handleCreateCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCatMsg("");
-    try {
-      const form = new FormData();
-      form.append("name", newCatName);
-      if (newCatImage) form.append("image", newCatImage);
 
-      await api.post("/blogs/types", form);
-      setCatMsg("Category created successfully!");
-      setNewCatName("");
-      setNewCatImage(null);
-      fetchData();
-    } catch (err: any) {
-      setCatMsg(err.response?.data?.detail || "Failed to create category");
-    }
-  };
-
-  const handleDeleteCategory = async (id: string, name: string) => {
-    if (!confirm(`Delete category "${name}"? This won't delete posts but will remove the category filter.`)) return;
-    try {
-      await api.delete(`/blogs/types/${id}`);
-      setCategories(categories.filter(c => c.id !== id));
-    } catch (err: any) {
-      alert(err.response?.data?.detail || "Failed to delete category");
-    }
-  };
 
   const handleSubmitPost = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,7 +104,19 @@ export default function AdminPage() {
       setCoverFile(null);
       fetchData();
     } catch (err: any) {
-      setMsg(err.response?.data?.detail || `Failed to ${editingId ? "update" : "publish"} blog`);
+      console.error(err);
+      let errorMsg = "Failed to process request";
+      if (err.response?.data?.detail) {
+        const detail = err.response.data.detail;
+        if (typeof detail === "string") {
+          errorMsg = detail;
+        } else if (Array.isArray(detail)) {
+          errorMsg = detail.map(e => e.msg).join(", ");
+        } else if (typeof detail === "object") {
+          errorMsg = JSON.stringify(detail);
+        }
+      }
+      setMsg(errorMsg);
     }
   };
 
@@ -297,7 +287,8 @@ export default function AdminPage() {
               </form>
             </motion.div>
 
-            {/* Create & Manage Category Section */}
+
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -308,58 +299,85 @@ export default function AdminPage() {
                 <Type className="text-purple-500" /> Manage Categories
               </h2>
 
-              <form onSubmit={handleCreateCategory} className="flex flex-col md:flex-row gap-4 items-end mb-8 border-b border-white/5 pb-8">
-                <div className="flex-1 w-full">
-                  <label className="form-label">Category Name</label>
-                  <input
-                    value={newCatName}
-                    onChange={(e) => setNewCatName(e.target.value)}
-                    className="form-input"
-                    placeholder="e.g. Technology"
-                  />
-                </div>
-                <div className="flex-1 w-full">
-                  <label className="form-label">Category Image</label>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setNewCatImage(e.target.files?.[0] || null)}
-                      className="hidden"
-                      id="cat-upload"
-                    />
-                    <label
-                      htmlFor="cat-upload"
-                      className="file-label justify-between"
-                    >
-                      <span className="truncate">{newCatImage ? newCatImage.name : "Select Image"}</span>
-                      <ImageIcon size={18} />
-                    </label>
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  className="btn-primary btn-small"
-                >
-                  Add Category
-                </button>
-              </form>
-              {catMsg && <p className={`mb-6 text-center text-sm ${catMsg.includes("success") ? "text-green-400" : "text-red-400"}`}>{catMsg}</p>}
-
-              {/* Category List */}
-              <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
-                <h3 className="text-sm font-semibold text-gray-400 mb-2">Existing Categories</h3>
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                {categories.length === 0 && <p className="text-gray-500 text-sm">No categories found.</p>}
                 {categories.map(cat => (
-                  <div key={cat.id} className="cat-item">
-                    <span className="text-sm">{cat.name}</span>
-                    <button onClick={() => handleDeleteCategory(cat.id, cat.name)} className="btn-danger-icon">
-                      <Trash2 size={14} />
-                    </button>
+                  <div key={cat.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
+                    {editingCatId === cat.id ? (
+                      <div className="flex items-center gap-2 w-full">
+                        <input
+                          value={tempCatName}
+                          onChange={(e) => setTempCatName(e.target.value)}
+                          className="bg-black/20 border border-white/10 rounded px-2 py-1 text-sm text-white w-full focus:outline-none focus:border-purple-500"
+                          autoFocus
+                        />
+                        <button
+                          onClick={async () => {
+                            if (tempCatName && tempCatName !== cat.name) {
+                              try {
+                                const form = new FormData();
+                                form.append("new_type", tempCatName);
+                                await api.put(`/blogs/types/${encodeURIComponent(cat.name)}`, form);
+                                fetchData();
+                                setEditingCatId(null);
+                              } catch (e) {
+                                alert("Failed to update");
+                              }
+                            } else {
+                              setEditingCatId(null);
+                            }
+                          }}
+                          className="p-1 px-2 bg-green-500/10 text-green-500 rounded hover:bg-green-500/20 text-xs font-bold"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingCatId(null)}
+                          className="p-1 px-2 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-sm font-medium">{cat.name}</span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingCatId(cat.id);
+                              setTempCatName(cat.name);
+                            }}
+                            className="p-2 text-blue-400 hover:bg-blue-400/10 rounded transition-colors"
+                            title="Rename"
+                          >
+                            <span className="text-xs uppercase font-bold">Edit</span>
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm(`Delete category "${cat.name}"?`)) {
+                                try {
+                                  await api.delete(`/blogs/types/${encodeURIComponent(cat.name)}`);
+                                  fetchData();
+                                } catch (e) {
+                                  alert("Failed to delete category");
+                                }
+                              }
+                            }}
+                            className="p-2 text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
             </motion.div>
           </div>
+
+
 
 
           {/* Existing Posts List */}
@@ -374,7 +392,7 @@ export default function AdminPage() {
               <div className="space-y-4">
                 {blogs.length === 0 && <p className="text-gray-500 text-center">No posts yet.</p>}
                 {blogs.map((blog) => (
-                  <div key={blog._id || blog.id} className="list-item">
+                  <div key={blog._id || blog.id} className="list-item group">
                     <h3 className="font-medium text-white mb-1 line-clamp-1">{blog.title}</h3>
                     <p className="text-xs text-gray-500 mb-3 line-clamp-2">{blog.content}</p>
                     <div className="flex justify-between items-center text-xs">
@@ -382,13 +400,13 @@ export default function AdminPage() {
                       <div className="flex gap-3">
                         <button
                           onClick={() => handleEdit(blog)}
-                          className="text-blue-400 hover:text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 px-2 py-1 rounded"
                         >
                           <span className="text-[10px] uppercase font-bold tracking-wider">Edit</span>
                         </button>
                         <button
                           onClick={() => handleDelete(blog._id || blog.id!)}
-                          className="btn-danger-icon opacity-0 group-hover:opacity-100"
+                          className="text-red-400 hover:text-red-300 bg-red-500/10 px-2 py-1 rounded transition-colors"
                         >
                           <Trash2 size={14} />
                         </button>

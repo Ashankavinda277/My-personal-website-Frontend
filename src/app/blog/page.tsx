@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import api from "../../utils/api";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Clock, ArrowRight, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Clock, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Blog {
     _id?: string;
@@ -30,7 +30,7 @@ export default function BlogPage() {
     const [selectedType, setSelectedType] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+
 
     const LIMIT = 15;
     const backendBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
@@ -84,7 +84,6 @@ export default function BlogPage() {
     const handleTypeSelect = (typeName: string | null) => {
         setSelectedType(typeName);
         setCurrentPage(1); // Reset to first page on filter change
-        setIsTypeDropdownOpen(false);
     };
 
     const handlePageChange = (page: number) => {
@@ -106,44 +105,27 @@ export default function BlogPage() {
                         All <span className="text-purple-500">Stories</span>
                     </h1>
 
-                    {/* Types Filter Dropdown */}
-                    <div className="relative inline-block text-left mt-6">
+                    {/* Types Filter - Horizontal List */}
+                    <div className="flex flex-nowrap justify-start gap-3 mt-8 pb-4 overflow-x-auto no-scrollbar mask-gradient">
                         <button
-                            onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-                            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-white font-medium min-w-[150px]"
+                            onClick={() => handleTypeSelect(null)}
+                            className={`whitespace-nowrap px-6 py-2 rounded-full border text-sm font-medium transition-all duration-300 ${!selectedType
+                                ? 'bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-900/40'
+                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white hover:border-white/30'}`}
                         >
-                            {selectedType || "All Types"}
-                            <ChevronDown size={16} className={`transition-transform duration-200 ${isTypeDropdownOpen ? 'rotate-180' : ''}`} />
+                            All Types
                         </button>
-
-                        <AnimatePresence>
-                            {isTypeDropdownOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="absolute left-1/2 -translate-x-1/2 mt-2 w-56 rounded-xl shadow-2xl bg-zinc-900 border border-white/10 overflow-hidden"
-                                >
-                                    <div className="py-1 max-h-60 overflow-y-auto custom-scrollbar">
-                                        <button
-                                            onClick={() => handleTypeSelect(null)}
-                                            className={`block w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors ${!selectedType ? 'text-purple-400 font-bold' : 'text-gray-300'}`}
-                                        >
-                                            All Types
-                                        </button>
-                                        {categories.map((cat) => (
-                                            <button
-                                                key={cat.id}
-                                                onClick={() => handleTypeSelect(cat.name)}
-                                                className={`block w-full text-left px-4 py-2 text-sm hover:bg-white/5 transition-colors ${selectedType === cat.name ? 'text-purple-400 font-bold' : 'text-gray-300'}`}
-                                            >
-                                                {cat.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        {categories.map((cat) => (
+                            <button
+                                key={cat.id}
+                                onClick={() => handleTypeSelect(cat.name)}
+                                className={`whitespace-nowrap px-6 py-2 rounded-full border text-sm font-medium transition-all duration-300 ${selectedType === cat.name
+                                    ? 'bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-900/40'
+                                    : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white hover:border-white/30'}`}
+                            >
+                                {cat.name}
+                            </button>
+                        ))}
                     </div>
                 </motion.div>
 
