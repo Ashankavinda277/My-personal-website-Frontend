@@ -13,6 +13,7 @@ interface Blog {
     title: string;
     content: string;
     cover_image?: string;
+    image_url?: string;  // Added for Cloudinary URL
     type?: string;
     created_at?: string;
     author?: string;
@@ -59,9 +60,9 @@ export default function BlogPost() {
         <article className="min-h-screen bg-black text-gray-200 pb-20">
             {/* Hero Image */}
             <div className="relative h-[40vh] md:h-[60vh] w-full overflow-hidden">
-                {blog.cover_image ? (
+                {(blog.image_url || blog.cover_image) ? (
                     <img
-                        src={blog.cover_image?.startsWith('http') ? blog.cover_image : `${backendBase}${blog.cover_image}`}
+                        src={blog.image_url || (blog.cover_image?.startsWith('http') ? blog.cover_image : `${backendBase}${blog.cover_image}`)}
                         alt={blog.title}
                         className="w-full h-full object-cover"
                     />
