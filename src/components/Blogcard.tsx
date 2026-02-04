@@ -11,6 +11,7 @@ interface Blog {
   title: string;
   content?: string;
   cover_image?: string;
+  image_url?: string;  // Added for Cloudinary URL
   type?: string;
   created_at?: string;
 }
@@ -135,9 +136,9 @@ export default function BlogList() {
                   <Link href={`/blog/${slug}`} className="block h-full flex flex-col">
                     {/* Image Container */}
                     <div className="blog-image-wrapper">
-                      {b.cover_image ? (
+                      {(b.image_url || b.cover_image) ? (
                         <img
-                          src={b.cover_image?.startsWith('http') ? b.cover_image : `${backendBase}${b.cover_image}`}
+                          src={b.image_url || (b.cover_image?.startsWith('http') ? b.cover_image : `${backendBase}${b.cover_image}`)}
                           alt={b.title}
                           className="blog-image"
                         />
