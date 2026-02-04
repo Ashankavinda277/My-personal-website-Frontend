@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Plus, LogOut, LayoutDashboard, Image as ImageIcon, Type, Trash2, Loader2, UserPlus } from "lucide-react";
+import RichTextEditor from "../../components/RichTextEditor";
 
 type BlogItem = { _id?: string; id?: string; title: string; content?: string; type?: string };
 
@@ -76,10 +77,20 @@ export default function AdminPage() {
     e.preventDefault();
     setMsg("");
 
+    // Validate required fields
+    if (!title || !title.trim()) {
+      setMsg("Title is required");
+      return;
+    }
+    if (!content || content.trim() === "" || content === "<p></p>") {
+      setMsg("Content is required");
+      return;
+    }
+
     try {
       const form = new FormData();
-      if (title) form.append("title", title);
-      if (content) form.append("content", content);
+      form.append("title", title);
+      form.append("content", content);
 
       // Use custom type if selected "other" or typed something
       const finalType = customType || selectedType;
@@ -104,14 +115,15 @@ export default function AdminPage() {
       setCoverFile(null);
       fetchData();
     } catch (err: any) {
-      console.error(err);
+      console.error("Full error:", err);
+      console.error("Error response:", err.response);
       let errorMsg = "Failed to process request";
       if (err.response?.data?.detail) {
         const detail = err.response.data.detail;
         if (typeof detail === "string") {
           errorMsg = detail;
         } else if (Array.isArray(detail)) {
-          errorMsg = detail.map(e => e.msg).join(", ");
+          errorMsg = detail.map(e => `${e.loc?.join('.')}: ${e.msg}`).join(", ");
         } else if (typeof detail === "object") {
           errorMsg = JSON.stringify(detail);
         }
@@ -226,11 +238,9 @@ export default function AdminPage() {
 
                 <div>
                   <label className="form-label">Content</label>
-                  <textarea
+                  <RichTextEditor
                     value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    rows={8}
-                    className="form-textarea"
+                    onChange={(html) => setContent(html)}
                     placeholder="Write your thoughts..."
                   />
                 </div>

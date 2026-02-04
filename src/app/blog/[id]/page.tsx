@@ -102,15 +102,10 @@ export default function BlogPost() {
                     </h1>
 
                     {/* Content Body */}
-                    <div className="prose prose-invert prose-lg max-w-none text-gray-300 leading-relaxed">
-                        {/* 
-                   Simple text rendering for now. 
-                   If Markdown is needed, we would use react-markdown here. 
-                */}
-                        {blog.content.split('\n').map((paragraph, idx) => (
-                            <p key={idx} className="mb-6">{paragraph}</p>
-                        ))}
-                    </div>
+                    <div
+                        className="prose prose-invert prose-lg max-w-none text-gray-300 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: blog.content }}
+                    />
                 </motion.div>
             </div>
         </article>

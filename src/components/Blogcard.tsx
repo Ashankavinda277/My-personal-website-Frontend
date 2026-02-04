@@ -4,7 +4,7 @@ import api from "../utils/api";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
-import { formatDate, calculateReadTime } from "../utils/format";
+import { formatDate, calculateReadTime, getExcerpt } from "../utils/format";
 
 interface Blog {
   _id?: string;
@@ -79,49 +79,63 @@ export default function BlogList() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: idx * 0.1 }}
-                  className="blog-card"
+                  className="blog-card-horizontal"
                 >
-                  <Link href={`/blog/${slug}`} className="block h-full flex flex-col">
-                    {/* Image Container */}
-                    <div className="blog-image-wrapper">
-                      {b.cover_image ? (
-                        <img
-                          src={b.cover_image?.startsWith('http') ? b.cover_image : `${backendBase}${b.cover_image}`}
-                          alt={b.title}
-                          className="blog-image"
-                        />
-                      ) : (
-                        <div className="blog-image-placeholder">
-                          <span className="text-zinc-700 text-4xl font-bold opacity-20">Blog</span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent opacity-60" />
-                    </div>
+                  <Link href={`/blog/${slug}`} className="block h-full">
+                    <div className="flex gap-6 h-full">
+                      {/* Content - Left Side (70%) */}
+                      <div className="flex-1 flex flex-col justify-between">
+                        {/* Category Badge */}
+                        {b.type && (
+                          <div className="mb-3">
+                            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-purple-400">
+                              {b.type}
+                            </span>
+                          </div>
+                        )}
 
-                    {/* Content */}
-                    <div className="blog-content">
-                      <div className="blog-meta">
-                        {b.type && <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10">{b.type}</span>}
-                        <div className="blog-meta-item">
-                          <Calendar size={12} />
-                          {formatDate(b.created_at)}
-                        </div>
-                        <div className="blog-meta-item">
-                          <Clock size={12} />
-                          {calculateReadTime(b.content)}
+                        {/* Title - Large and Prominent */}
+                        <h3 className="text-2xl md:text-3xl font-bold text-white mb-3 line-clamp-2 hover:text-purple-400 transition-colors">
+                          {b.title}
+                        </h3>
+
+                        {/* Excerpt */}
+                        <p className="text-gray-400 text-base mb-4 line-clamp-2 flex-grow">
+                          {getExcerpt(b.content || "", 150)}
+                        </p>
+
+                        {/* Meta Info + Read More */}
+                        <div className="flex items-center justify-between mt-auto">
+                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <div className="flex items-center gap-1">
+                              <Calendar size={14} />
+                              {formatDate(b.created_at)}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Clock size={14} />
+                              {calculateReadTime(b.content)}
+                            </div>
+                          </div>
+
+                          <div className="text-purple-400 text-sm flex items-center gap-1 hover:gap-2 transition-all">
+                            Read Article <ArrowRight size={16} />
+                          </div>
                         </div>
                       </div>
 
-                      <h3 className="blog-title">
-                        {b.title}
-                      </h3>
-
-                      <p className="blog-excerpt">
-                        {b.content}
-                      </p>
-
-                      <div className="read-more-link">
-                        Read Article <ArrowRight size={16} />
+                      {/* Image - Right Side (30%) */}
+                      <div className="w-48 h-32 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-900 relative">
+                        {b.cover_image ? (
+                          <img
+                            src={b.cover_image?.startsWith('http') ? b.cover_image : `${backendBase}${b.cover_image}`}
+                            alt={b.title}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-zinc-800/50">
+                            <span className="text-zinc-700 text-2xl font-bold opacity-20">Blog</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </Link>

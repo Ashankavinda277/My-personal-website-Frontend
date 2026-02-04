@@ -26,11 +26,11 @@ export default function AboutPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-center mb-16"
                 >
-                    <h1 className="text-4xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 mb-6">
+                    <h1 className="text-4xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 mb-6 pb-2 leading-tight">
                         About The Blog
                     </h1>
                     <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                        Simplifying complex concepts in IT, Medicine, and beyond to empower the next generation of professionals.
+                        Simplifying complex concepts and beyond to empower the next generation of professionals.
                     </p>
                 </motion.div>
 

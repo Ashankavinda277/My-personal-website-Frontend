@@ -4,7 +4,7 @@ import api from "../../utils/api";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calendar, Clock, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { formatDate, calculateReadTime } from "../../utils/format";
+import { formatDate, calculateReadTime, getExcerpt } from "../../utils/format";
 
 interface Blog {
     _id?: string;
@@ -12,6 +12,7 @@ interface Blog {
     title: string;
     content?: string;
     cover_image?: string;
+    image_url?: string;
     type?: string;
     created_at?: string;
 }
@@ -161,49 +162,63 @@ export default function BlogPage() {
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }}
                                         transition={{ delay: idx * 0.05 }}
-                                        className="blog-card"
+                                        className="blog-card-horizontal"
                                     >
-                                        <Link href={`/blog/${slug}`} className="block h-full flex flex-col">
-                                            {/* Image */}
-                                            <div className="blog-image-wrapper">
-                                                {(blog.image_url || blog.cover_image) ? (
-                                                    <img
-                                                        src={blog.image_url || (blog.cover_image?.startsWith('http') ? blog.cover_image : `${backendBase}${blog.cover_image}`)}
-                                                        alt={blog.title}
-                                                        className="blog-image"
-                                                    />
-                                                ) : (
-                                                    <div className="blog-image-placeholder">
-                                                        <span className="text-zinc-700 text-4xl font-bold opacity-20">Blog</span>
-                                                    </div>
-                                                )}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent opacity-60" />
-                                            </div>
+                                        <Link href={`/blog/${slug}`} className="block h-full">
+                                            <div className="flex gap-6 h-full">
+                                                {/* Content - Left Side (70%) */}
+                                                <div className="flex-1 flex flex-col justify-between">
+                                                    {/* Category Badge */}
+                                                    {blog.type && (
+                                                        <div className="mb-3">
+                                                            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-purple-400">
+                                                                {blog.type}
+                                                            </span>
+                                                        </div>
+                                                    )}
 
-                                            {/* Content */}
-                                            <div className="blog-content">
-                                                <div className="blog-meta">
-                                                    {blog.type && <span className="px-2 py-1 rounded-full bg-white/5 border border-white/10 text-xs">{blog.type}</span>}
-                                                    <div className="blog-meta-item">
-                                                        <Calendar size={12} />
-                                                        {formatDate(blog.created_at)}
-                                                    </div>
-                                                    <div className="blog-meta-item">
-                                                        <Clock size={12} />
-                                                        {calculateReadTime(blog.content)}
+                                                    {/* Title - Large and Prominent */}
+                                                    <h3 className="text-2xl md:text-3xl font-bold text-white mb-3 line-clamp-2 hover:text-purple-400 transition-colors">
+                                                        {blog.title}
+                                                    </h3>
+
+                                                    {/* Excerpt */}
+                                                    <p className="text-gray-400 text-base mb-4 line-clamp-2 flex-grow">
+                                                        {getExcerpt(blog.content || "", 150)}
+                                                    </p>
+
+                                                    {/* Meta Info + Read More */}
+                                                    <div className="flex items-center justify-between mt-auto">
+                                                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                                                            <div className="flex items-center gap-1">
+                                                                <Calendar size={14} />
+                                                                {formatDate(blog.created_at)}
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <Clock size={14} />
+                                                                {calculateReadTime(blog.content)}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="text-purple-400 text-sm flex items-center gap-1 hover:gap-2 transition-all">
+                                                            Read Article <ArrowRight size={16} />
+                                                        </div>
                                                     </div>
                                                 </div>
 
-                                                <h3 className="blog-title">
-                                                    {blog.title}
-                                                </h3>
-
-                                                <p className="blog-excerpt">
-                                                    {blog.content}
-                                                </p>
-
-                                                <div className="read-more-link">
-                                                    Read Article <ArrowRight size={16} />
+                                                {/* Image - Right Side (30%) */}
+                                                <div className="w-48 h-32 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-900 relative">
+                                                    {(blog.image_url || blog.cover_image) ? (
+                                                        <img
+                                                            src={blog.image_url || (blog.cover_image?.startsWith('http') ? blog.cover_image : `${backendBase}${blog.cover_image}`)}
+                                                            alt={blog.title}
+                                                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center bg-zinc-800/50">
+                                                            <span className="text-zinc-700 text-2xl font-bold opacity-20">Blog</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </Link>

@@ -1,16 +1,73 @@
-export const formatDate = (dateString?: string) => {
-    if (!dateString) return "Unknown Date";
-    return new Date(dateString).toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-};
+/**
+ * Format date to human-readable string
+ */
+export function formatDate(dateString?: string): string {
+    if (!dateString) return "Recently";
 
-export const calculateReadTime = (content?: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+
+    return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+    });
+}
+
+/**
+ * Calculate estimated read time based on content
+ */
+export function calculateReadTime(content?: string): string {
     if (!content) return "1 min read";
-    const words = content.split(/\s+/).length;
-    if (words < 100) return "Less than 1 min read";
-    const minutes = Math.ceil(words / 200);
+
+    // Strip HTML tags for accurate word count
+    const plainText = stripHtmlTags(content);
+    const words = plainText.trim().split(/\s+/).length;
+    const minutes = Math.ceil(words / 200); // Average reading speed: 200 words/min
+
     return `${minutes} min read`;
-};
+}
+
+/**
+ * Strip HTML tags from a string and return plain text
+ */
+export function stripHtmlTags(html: string): string {
+    if (!html) return "";
+
+    // Remove HTML tags
+    const withoutTags = html.replace(/<[^>]*>/g, " ");
+
+    // Decode HTML entities
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = withoutTags;
+    const decoded = textarea.value;
+
+    // Clean up extra whitespace
+    return decoded.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Get excerpt from HTML content (first N characters of plain text)
+ */
+export function getExcerpt(html: string, maxLength: number = 150): string {
+    const plainText = stripHtmlTags(html);
+
+    if (plainText.length <= maxLength) {
+        return plainText;
+    }
+
+    // Truncate at word boundary
+    const truncated = plainText.substring(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(" ");
+
+    return lastSpace > 0
+        ? truncated.substring(0, lastSpace) + "..."
+        : truncated + "...";
+}
