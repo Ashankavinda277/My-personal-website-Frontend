@@ -15,40 +15,21 @@ interface Blog {
   created_at?: string;
 }
 
-interface Category {
-  id: string;
-  name: string;
-  image?: string;
-}
-
 export default function BlogList() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch Categories
-  useEffect(() => {
-    api.get("/blogs/types")
-      .then(res => setCategories(res.data.items || []))
-      .catch(err => console.error("Failed to fetch types", err));
-  }, []);
-
-  // Fetch Blogs (optionally filtered)
+  // Fetch 6 recent blogs
   useEffect(() => {
     setLoading(true);
-    const endpoint = selectedCategory ? `/blogs?type=${encodeURIComponent(selectedCategory)}` : "/blogs";
-
     api
-      .get(endpoint)
+      .get("/blogs?limit=6")
       .then((res) => {
         const data = res.data;
         if (Array.isArray(data)) {
           setBlogs(data);
         } else if (Array.isArray(data?.items)) {
           setBlogs(data.items);
-        } else if (Array.isArray(data?.blogs)) {
-          setBlogs(data.blogs);
         } else {
           setBlogs([]);
         }
@@ -59,7 +40,7 @@ export default function BlogList() {
         setBlogs([]);
         setLoading(false);
       });
-  }, [selectedCategory]);
+  }, []);
 
   const backendBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -75,39 +56,6 @@ export default function BlogList() {
           Latest <span className="text-purple-500">Stories</span>
         </motion.h2>
 
-        {/* Categories Bar */}
-        <div className="category-filter-bar">
-          <div className="category-filter-wrapper">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={`filter-btn ${selectedCategory === null ? "filter-btn-active" : "filter-btn-inactive"}`}
-            >
-              <span>All</span>
-            </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.name)}
-                className={`filter-btn ${selectedCategory === cat.name ? "filter-btn-active" : "filter-btn-inactive"}`}
-              >
-                {/* Category Image Avatar */}
-                {cat.image ? (
-                  <img
-                    src={cat.image.startsWith('http') ? cat.image : `${backendBase}${cat.image}`}
-                    alt={cat.name}
-                    className="w-8 h-8 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold">
-                    {cat.name[0]}
-                  </div>
-                )}
-                <span className="font-medium">{cat.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Blog Grid */}
         {loading ? (
           <div className="flex justify-center py-20">
@@ -115,7 +63,7 @@ export default function BlogList() {
           </div>
         ) : blogs.length === 0 ? (
           <div className="text-center text-gray-500 py-10">
-            No stories found for this category.
+            No stories found.
           </div>
         ) : (
           <div className="blog-grid">
@@ -176,6 +124,17 @@ export default function BlogList() {
             })}
           </div>
         )}
+
+        {/* View All Button */}
+        <div className="flex justify-center mt-12">
+          <Link
+            href="/blog"
+            className="group flex items-center gap-2 px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white transition-all hover:scale-105 active:scale-95 backdrop-blur-sm"
+          >
+            View All Stories
+            <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+          </Link>
+        </div>
       </div>
     </section>
   );
