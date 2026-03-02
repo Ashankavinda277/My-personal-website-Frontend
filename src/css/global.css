@@ -257,11 +257,20 @@ body {
 
   .prose-invert ul,
   .prose-invert ol {
-    @apply text-gray-300 mb-3 pl-6;
+    @apply text-gray-300 mb-3 pl-8;
   }
 
   .prose-invert li {
     @apply mb-1;
+  }
+
+  /* Default list styles if no specific class */
+  .prose-invert ul:not([class*="list-"]) {
+    list-style-type: disc;
+  }
+
+  .prose-invert ol:not([class*="list-"]) {
+    list-style-type: decimal;
   }
 
   .prose-invert code {
@@ -282,6 +291,127 @@ body {
 
   .prose-invert blockquote {
     @apply border-l-4 border-purple-500 pl-4 italic text-gray-400 my-4;
+  }
+
+  /* Font Size Support */
+  .prose-invert [style*="font-size"] {
+    line-height: 1.5;
+  }
+
+  /* Ensure inline styles are preserved */
+  .prose-invert span[style] {
+    display: inline;
+  }
+
+  /* Resizable Images - Word-like drag resize */
+  .prose-invert .resizable-image-wrapper {
+    display: block;
+    margin: 1rem 0;
+  }
+
+  .prose-invert .image-container {
+    user-select: none;
+  }
+
+  .prose-invert .image-container img {
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .prose-invert .resize-handle {
+    transition: transform 0.1s;
+  }
+
+  .prose-invert .resize-handle:hover {
+    transform: scale(1.3);
+  }
+
+  /* Fallback for regular images */
+  .prose-invert img:not(.resizable-image-wrapper img) {
+    @apply rounded-lg my-4;
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* Custom List Styles */
+  
+  /* Bullet List Styles */
+  .prose-invert ul.list-disc,
+  ul.list-disc {
+    list-style-type: disc !important;
+  }
+
+  .prose-invert ul.list-circle,
+  ul.list-circle {
+    list-style-type: circle !important;
+  }
+
+  .prose-invert ul.list-square,
+  ul.list-square {
+    list-style-type: square !important;
+  }
+
+  .prose-invert ul.list-checkmark li::marker,
+  ul.list-checkmark li::marker {
+    content: "✓ " !important;
+    color: #a855f7;
+    font-weight: bold;
+  }
+
+  .prose-invert ul.list-arrow li::marker,
+  ul.list-arrow li::marker {
+    content: "➤ " !important;
+    color: #a855f7;
+  }
+
+  .prose-invert ul.list-diamond li::marker,
+  ul.list-diamond li::marker {
+    content: "◆ " !important;
+    color: #a855f7;
+  }
+
+  /* Ordered List Styles */
+  .prose-invert ol.list-decimal,
+  ol.list-decimal {
+    list-style-type: decimal !important;
+  }
+
+  .prose-invert ol.list-lower-alpha,
+  ol.list-lower-alpha {
+    list-style-type: lower-alpha !important;
+  }
+
+  .prose-invert ol.list-upper-alpha,
+  ol.list-upper-alpha {
+    list-style-type: upper-alpha !important;
+  }
+
+  .prose-invert ol.list-lower-roman,
+  ol.list-lower-roman {
+    list-style-type: lower-roman !important;
+  }
+
+  .prose-invert ol.list-upper-roman,
+  ol.list-upper-roman {
+    list-style-type: upper-roman !important;
+  }
+
+  /* Ensure all custom lists have proper spacing and display */
+  .prose-invert ul[class*="list-"],
+  .prose-invert ol[class*="list-"],
+  ul[class*="list-"],
+  ol[class*="list-"] {
+    @apply text-gray-300 mb-4 pl-8;
+    display: block;
+  }
+
+  .prose-invert ul[class*="list-"] li,
+  .prose-invert ol[class*="list-"] li,
+  ul[class*="list-"] li,
+  ol[class*="list-"] li {
+    @apply mb-2;
+    display: list-item;
   }
 
   /* Blog Grid - 2 Column Layout */
