@@ -43,7 +43,8 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
             TextStyle,
             Color,
             Image.configure({
-                inline: true,
+                inline: false,
+                allowBase64: true,
                 HTMLAttributes: {
                     class: "max-w-full h-auto rounded-lg my-4",
                 },
@@ -93,7 +94,13 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
 
                 if (imageUrl) {
                     console.log("Image uploaded successfully:", imageUrl);
-                    editor.chain().focus().setImage({ src: imageUrl }).run();
+                    // Insert image using insertContent for better compatibility
+                    editor.chain().focus().insertContent({
+                        type: 'image',
+                        attrs: {
+                            src: imageUrl,
+                        },
+                    }).run();
                 } else {
                     throw new Error("No URL returned from server");
                 }
@@ -102,8 +109,13 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                 alert(`Image upload failed: ${error instanceof Error ? error.message : "Unknown error"}\n\nPlease check:\n1. You're logged in as admin\n2. Backend server is running\n3. Cloudinary is configured (or local uploads enabled)`);
                 // Fallback to URL prompt
                 const url = prompt("Enter image URL instead:");
-                if (url) {
-                    editor.chain().focus().setImage({ src: url }).run();
+                if (url && editor) {
+                    editor.chain().focus().insertContent({
+                        type: 'image',
+                        attrs: {
+                            src: url,
+                        },
+                    }).run();
                 }
             }
         };
