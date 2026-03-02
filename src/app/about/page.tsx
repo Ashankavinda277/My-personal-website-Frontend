@@ -107,12 +107,12 @@ export default function AboutPage() {
                         <div className="bg-gradient-to-tr from-purple-900/50 to-blue-900/50 rounded-3xl p-10 border border-white/10">
                             <h2 className="text-3xl font-bold mb-4">Join Our Community</h2>
                             <p className="text-gray-300 mb-8 max-w-2xl mx-auto">
-                                Don't just read—engage. Join our Discord for peer-to-peer learning or download our 'Exam-Ready' cheat sheets.
+                                Don't just read—engage. Join our Facebook Page for peer-to-peer learning and updates on new content.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                                <button className="px-8 py-3 rounded-full bg-white text-black font-bold hover:bg-gray-200 transition-colors">
-                                    Join Discord
-                                </button>
+                                <Link href="https://facebook.com/ConceptsBlog" target="_blank" className="px-8 py-3 rounded-full bg-white text-black font-bold hover:bg-gray-200 transition-colors">
+                                    Join Facebook Page
+                                </Link>
                                 <Link href="/blog" className="px-8 py-3 rounded-full bg-white/10 border border-white/20 hover:bg-white/20 transition-colors font-medium">
                                     Explore The Blog
                                 </Link>

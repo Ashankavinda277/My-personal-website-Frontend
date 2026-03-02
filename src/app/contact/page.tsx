@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Github, Linkedin, MessageSquare, Send, User, AtSign, FileText } from "lucide-react";
+import { Mail, Facebook, Send, User, AtSign, FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
+import api from "@/utils/api";
 
 export default function ContactPage() {
     const [formData, setFormData] = useState({
@@ -12,11 +13,36 @@ export default function ContactPage() {
         subject: "",
         message: ""
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+    const [errorMessage, setErrorMessage] = useState("");
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Simulate form submission
-        alert("Thanks for reaching out! This is a demo form.");
+        setIsSubmitting(true);
+        setSubmitStatus("idle");
+        setErrorMessage("");
+
+        try {
+            const response = await api.post("/contact/submit", formData);
+            
+            if (response.data.success) {
+                setSubmitStatus("success");
+                setFormData({ name: "", email: "", subject: "", message: "" });
+                
+                // Reset success message after 5 seconds
+                setTimeout(() => setSubmitStatus("idle"), 5000);
+            }
+        } catch (error: any) {
+            console.error("Error submitting form:", error);
+            setSubmitStatus("error");
+            setErrorMessage(error.response?.data?.detail || "Failed to send message. Please try again.");
+            
+            // Reset error message after 5 seconds
+            setTimeout(() => setSubmitStatus("idle"), 5000);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -52,20 +78,17 @@ export default function ContactPage() {
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <Link href="https://github.com" target="_blank" className="p-4 glass-card flex items-center gap-3 hover:bg-white/10 transition-colors group">
-                                    <Github className="text-gray-400 group-hover:text-white transition-colors" />
-                                    <span className="font-medium text-gray-300 group-hover:text-white">GitHub</span>
+                            <div className="grid grid-cols-2 gap-4 max-w-md">
+                                <Link href="https://facebook.com/ConceptsBlog" target="_blank" className="p-4 glass-card flex items-center gap-3 hover:bg-white/10 transition-colors group">
+                                    <Facebook className="text-blue-500 group-hover:text-blue-400 transition-colors" />
+                                    <span className="font-medium text-gray-300 group-hover:text-white">Facebook</span>
                                 </Link>
-                                <Link href="https://linkedin.com" target="_blank" className="p-4 glass-card flex items-center gap-3 hover:bg-white/10 transition-colors group">
-                                    <Linkedin className="text-blue-400 group-hover:text-blue-300 transition-colors" />
-                                    <span className="font-medium text-gray-300 group-hover:text-white">LinkedIn</span>
-                                </Link>
-                                <Link href="#" className="p-4 glass-card flex items-center gap-3 hover:bg-white/10 transition-colors group">
-                                    <MessageSquare className="text-indigo-400 group-hover:text-indigo-300 transition-colors" />
-                                    <span className="font-medium text-gray-300 group-hover:text-white">Discord</span>
-                                </Link>
-                                <Link href="mailto:hello@example.com" className="p-4 glass-card flex items-center gap-3 hover:bg-white/10 transition-colors group">
+                                <Link 
+                                    href="https://mail.google.com/mail/?view=cm&fs=1&to=concepts.update@gmail.com"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-4 glass-card flex items-center gap-3 hover:bg-white/10 transition-colors group cursor-pointer"
+                                >
                                     <Mail className="text-pink-400 group-hover:text-pink-300 transition-colors" />
                                     <span className="font-medium text-gray-300 group-hover:text-white">Email</span>
                                 </Link>
@@ -142,10 +165,32 @@ export default function ContactPage() {
 
                                 <button
                                     type="submit"
-                                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                                    disabled={isSubmitting}
+                                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <Send size={18} /> Send Message
+                                    <Send size={18} /> 
+                                    {isSubmitting ? "Sending..." : "Send Message"}
                                 </button>
+
+                                {/* Success/Error Messages */}
+                                {submitStatus === "success" && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="p-4 bg-green-500/10 border border-green-500/50 rounded-lg text-green-400 text-center"
+                                    >
+                                        ✅ Message sent successfully! We'll get back to you soon.
+                                    </motion.div>
+                                )}
+                                {submitStatus === "error" && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="p-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-center"
+                                    >
+                                        ❌ {errorMessage}
+                                    </motion.div>
+                                )}
                             </form>
                         </motion.div>
 
