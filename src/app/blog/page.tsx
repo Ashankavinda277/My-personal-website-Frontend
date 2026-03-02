@@ -165,49 +165,9 @@ export default function BlogPage() {
                                         className="blog-card-horizontal"
                                     >
                                         <Link href={`/blog/${slug}`} className="block h-full">
-                                            <div className="flex gap-6 h-full">
-                                                {/* Content - Left Side (70%) */}
-                                                <div className="flex-1 flex flex-col justify-between">
-                                                    {/* Category Badge */}
-                                                    {blog.type && (
-                                                        <div className="mb-3">
-                                                            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-purple-400">
-                                                                {blog.type}
-                                                            </span>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Title - Large and Prominent */}
-                                                    <h3 className="text-2xl md:text-3xl font-bold text-white mb-3 line-clamp-2 hover:text-purple-400 transition-colors">
-                                                        {blog.title}
-                                                    </h3>
-
-                                                    {/* Excerpt */}
-                                                    <p className="text-gray-400 text-base mb-4 line-clamp-2 flex-grow">
-                                                        {getExcerpt(blog.content || "", 150)}
-                                                    </p>
-
-                                                    {/* Meta Info + Read More */}
-                                                    <div className="flex items-center justify-between mt-auto">
-                                                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                                                            <div className="flex items-center gap-1">
-                                                                <Calendar size={14} />
-                                                                {formatDate(blog.created_at)}
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <Clock size={14} />
-                                                                {calculateReadTime(blog.content)}
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="text-purple-400 text-sm flex items-center gap-1 hover:gap-2 transition-all">
-                                                            Read Article <ArrowRight size={16} />
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Image - Right Side (30%) */}
-                                                <div className="w-48 h-32 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-900 relative">
+                                            <div className="flex flex-col md:flex-row gap-4 md:gap-6 h-full">
+                                                {/* Image - Top on Mobile, Right on Desktop */}
+                                                <div className="w-full md:w-48 h-48 md:h-32 md:order-2 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-900 relative">
                                                     {(blog.image_url || blog.cover_image) ? (
                                                         <img
                                                             src={blog.image_url || (blog.cover_image?.startsWith('http') ? blog.cover_image : `${backendBase}${blog.cover_image}`)}
@@ -219,6 +179,47 @@ export default function BlogPage() {
                                                             <span className="text-zinc-700 text-2xl font-bold opacity-20">Blog</span>
                                                         </div>
                                                     )}
+                                                </div>
+
+                                                {/* Content - Bottom on Mobile, Left on Desktop */}
+                                                <div className="flex-1 md:order-1 flex flex-col justify-between">
+                                                    {/* Category Badge */}
+                                                    {blog.type && (
+                                                        <div className="mb-3">
+                                                            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-purple-400">
+                                                                {blog.type}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Title - Large and Prominent */}
+                                                    <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-white mb-3 line-clamp-2 hover:text-purple-400 transition-colors">
+                                                        {blog.title}
+                                                    </h3>
+
+                                                    {/* Excerpt */}
+                                                    <p className="text-gray-400 text-sm md:text-base mb-4 line-clamp-2 flex-grow">
+                                                        {getExcerpt(blog.content || "", 150)}
+                                                    </p>
+
+                                                    {/* Meta Info + Read More */}
+                                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-auto">
+                                                        <div className="flex items-center gap-3 md:gap-4 text-xs text-gray-500">
+                                                            <div className="flex items-center gap-1">
+                                                                <Calendar size={14} />
+                                                                <span className="hidden sm:inline">{formatDate(blog.created_at)}</span>
+                                                                <span className="sm:hidden">Today</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <Clock size={14} />
+                                                                {calculateReadTime(blog.content)}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="text-purple-400 text-sm flex items-center gap-1 hover:gap-2 transition-all">
+                                                            Read Article <ArrowRight size={16} />
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </Link>
