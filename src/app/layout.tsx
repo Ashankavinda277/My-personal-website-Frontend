@@ -17,6 +17,10 @@ const jetMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Concepts",
   description: "Created by concepts.com",
+  icons: {
+    icon: '/concept.png',
+    apple: '/concept.png',
+  },
 };
 
 export default function RootLayout({

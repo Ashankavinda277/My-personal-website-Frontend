@@ -40,7 +40,7 @@ body {
 
   /* --- Layouts & Global --- */
   .admin-container {
-    @apply min-h-screen bg-black text-gray-100 flex;
+    @apply min-h-screen bg-black text-gray-100 flex pt-20;
   }
 
   .sidebar {
@@ -48,7 +48,7 @@ body {
   }
 
   .main-content {
-    @apply flex-1 p-8 overflow-y-auto h-screen;
+    @apply flex-1 p-8 overflow-y-auto;
   }
 
   .dashboard-grid {
@@ -416,12 +416,12 @@ body {
 
   /* Blog Grid - 2 Column Layout */
   .blog-grid {
-    @apply grid grid-cols-1 lg:grid-cols-2 gap-6;
+    @apply grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6;
   }
 
   /* Blog Card - Horizontal Layout (Title-Focused) */
   .blog-card-horizontal {
-    @apply bg-zinc-900/30 border border-white/10 rounded-xl p-6 backdrop-blur-sm hover:border-purple-500/50 hover:bg-zinc-900/50 transition-all duration-300 cursor-pointer;
+    @apply bg-zinc-900/30 border border-white/10 rounded-xl p-4 md:p-6 backdrop-blur-sm hover:border-purple-500/50 hover:bg-zinc-900/50 transition-all duration-300 cursor-pointer;
   }
 
   .blog-card-horizontal:hover h3 {

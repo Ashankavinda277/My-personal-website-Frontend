@@ -294,7 +294,7 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white">
+      <div className="min-h-screen bg-black flex items-center justify-center text-white pt-20">
         <Loader2 className="animate-spin text-purple-500" size={48} />
       </div>
     );
