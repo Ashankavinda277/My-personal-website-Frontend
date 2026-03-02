@@ -56,7 +56,7 @@ export default function BlogPost() {
     const backendBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
     return (
-        <article className="min-h-screen bg-black text-gray-200 pb-20">
+        <article className="min-h-screen bg-black text-gray-200 pb-20 pt-16">
             {/* Hero Image */}
             <div className="relative h-[40vh] md:h-[60vh] w-full overflow-hidden">
                 {blog.cover_image ? (
@@ -75,7 +75,7 @@ export default function BlogPost() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
 
                 {/* Back Button */}
-                <Link href="/" className="absolute top-24 left-6 md:left-20 z-10 flex items-center gap-2 text-white/80 hover:text-white transition-colors bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                <Link href="/" className="absolute top-6 left-6 md:left-20 z-10 flex items-center gap-2 text-white/80 hover:text-white transition-colors bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
                     <ArrowLeft size={18} /> Back
                 </Link>
             </div>
