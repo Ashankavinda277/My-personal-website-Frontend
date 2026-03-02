@@ -40,7 +40,7 @@ body {
 
   /* --- Layouts & Global --- */
   .admin-container {
-    @apply min-h-screen bg-black text-gray-100 flex;
+    @apply min-h-screen bg-black text-gray-100 flex pt-20;
   }
 
   .sidebar {
@@ -48,7 +48,7 @@ body {
   }
 
   .main-content {
-    @apply flex-1 p-8 overflow-y-auto h-screen;
+    @apply flex-1 p-8 overflow-y-auto;
   }
 
   .dashboard-grid {
