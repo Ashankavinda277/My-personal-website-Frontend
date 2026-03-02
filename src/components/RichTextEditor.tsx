@@ -550,6 +550,13 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         },
     });
 
+    // Update editor content when value prop changes (for editing existing blogs)
+    useEffect(() => {
+        if (editor && value !== editor.getHTML()) {
+            editor.commands.setContent(value);
+        }
+    }, [editor, value]);
+
     const addImage = useCallback(async () => {
         const input = document.createElement("input");
         input.type = "file";
