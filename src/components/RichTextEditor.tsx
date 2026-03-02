@@ -129,6 +129,7 @@ const ResizableImageComponent = (props: any) => {
         width: props.node.attrs.width || 300,
         height: props.node.attrs.height || 200,
     });
+    const [isHovered, setIsHovered] = useState(false);
     const imageRef = useRef<HTMLImageElement>(null);
     const currentDimensions = useRef(dimensions);
 
@@ -200,9 +201,11 @@ const ResizableImageComponent = (props: any) => {
     };
 
     return (
-        <NodeViewWrapper className="resizable-image-wrapper">
+        <NodeViewWrapper className="resizable-image-wrapper" data-drag-handle>
             <div 
-                className="image-container" 
+                className="image-container"
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
                 style={{ 
                     width: `${dimensions.width}px`,
                     height: `${dimensions.height}px`,
@@ -211,6 +214,41 @@ const ResizableImageComponent = (props: any) => {
                     margin: '1rem 0',
                 }}
             >
+                {/* Drag Handle */}
+                <div
+                    data-drag-handle
+                    style={{
+                        position: 'absolute',
+                        top: '-8px',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: '40px',
+                        height: '20px',
+                        backgroundColor: 'rgba(168, 85, 247, 0.9)',
+                        borderRadius: '4px 4px 0 0',
+                        cursor: 'grab',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 20,
+                        opacity: (props.selected || isHovered) ? 1 : 0,
+                        transition: 'opacity 0.2s',
+                    }}
+                    onMouseDown={(e) => {
+                        e.currentTarget.style.cursor = 'grabbing';
+                    }}
+                    onMouseUp={(e) => {
+                        e.currentTarget.style.cursor = 'grab';
+                    }}
+                    title="Drag to move image"
+                >
+                    <svg width="16" height="6" viewBox="0 0 16 6" fill="white">
+                        <circle cx="3" cy="3" r="1.5" />
+                        <circle cx="8" cy="3" r="1.5" />
+                        <circle cx="13" cy="3" r="1.5" />
+                    </svg>
+                </div>
+                
                 <img
                     ref={imageRef}
                     src={props.node.attrs.src}
