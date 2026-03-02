@@ -56,9 +56,9 @@ export default function BlogPost() {
     const backendBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
     return (
-        <article className="min-h-screen bg-black text-gray-200 pb-20 pt-16">
+        <article className="min-h-screen bg-black text-gray-200 pb-20 pt-20">
             {/* Hero Image */}
-            <div className="relative h-[40vh] md:h-[60vh] w-full overflow-hidden">
+            <div className="relative h-[50vh] md:h-[70vh] w-full overflow-hidden rounded-b-2xl">
                 {blog.cover_image ? (
                     <img
                         src={blog.cover_image?.startsWith('http') ? blog.cover_image : `${backendBase}${blog.cover_image}`}
@@ -72,35 +72,38 @@ export default function BlogPost() {
                         </span>
                     </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
-                {/* Back Button */}
-                <Link href="/" className="absolute top-6 left-6 md:left-20 z-10 flex items-center gap-2 text-white/80 hover:text-white transition-colors bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                {/* Back Button - Fixed Position */}
+                <Link href="/" className="fixed top-24 left-6 md:left-8 z-50 flex items-center gap-2 text-white/80 hover:text-white transition-colors bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 hover:bg-black/60">
                     <ArrowLeft size={18} /> Back
                 </Link>
+
+                {/* Title Overlay on Image */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12">
+                    <div className="container mx-auto max-w-4xl">
+                        <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 leading-tight drop-shadow-2xl">
+                            {blog.title}
+                        </h1>
+                        {/* Metadata on Image */}
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-200">
+                            {blog.type && <span className="text-purple-400 font-semibold">#{blog.type}</span>}
+                            <div className="w-1 h-1 bg-gray-400 rounded-full" />
+                            <span className="flex items-center gap-1"><User size={14} /> {blog.author || "Admin"}</span>
+                            <div className="w-1 h-1 bg-gray-400 rounded-full" />
+                            <span className="flex items-center gap-1"><Calendar size={14} /> Today</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Content Container */}
-            <div className="container mx-auto px-6 -mt-32 relative z-10">
+            <div className="container mx-auto px-6 mt-8 relative z-10">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="max-w-4xl mx-auto"
                 >
-                    {/* Metadata */}
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400 mb-6 bg-black/40 backdrop-blur-md inline-flex px-4 py-2 rounded-full border border-white/5">
-                        {blog.type && <span className="text-purple-400 font-semibold">#{blog.type}</span>}
-                        <div className="w-1 h-1 bg-gray-600 rounded-full" />
-                        <span className="flex items-center gap-1"><User size={14} /> Written by: {blog.author || "Admin"}</span>
-                        <div className="w-1 h-1 bg-gray-600 rounded-full" />
-                        <span className="flex items-center gap-1"><Calendar size={14} /> Today</span>
-                    </div>
-
-                    {/* Title */}
-                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-10 leading-tight">
-                        {blog.title}
-                    </h1>
-
                     {/* Content Body */}
                     <div
                         className="prose prose-invert prose-lg max-w-none text-gray-300 leading-relaxed"
