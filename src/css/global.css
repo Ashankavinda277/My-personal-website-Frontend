@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @plugin "tailwindcss-animate";
+@plugin "@tailwindcss/typography";
 
 @theme {
   --color-background: hsl(240 10% 3.9%);
@@ -257,7 +258,7 @@ body {
 
   .prose-invert ul,
   .prose-invert ol {
-    @apply text-gray-300 mb-3 pl-8;
+    @apply text-gray-300 mb-3;
   }
 
   .prose-invert li {
@@ -267,10 +268,12 @@ body {
   /* Default list styles if no specific class */
   .prose-invert ul:not([class*="list-"]) {
     list-style-type: disc;
+    padding-left: 2.5em;
   }
 
   .prose-invert ol:not([class*="list-"]) {
     list-style-type: decimal;
+    padding-left: 2.5em;
   }
 
   .prose-invert code {
@@ -291,6 +294,53 @@ body {
 
   .prose-invert blockquote {
     @apply border-l-4 border-purple-500 pl-4 italic text-gray-400 my-4;
+  }
+
+  /* Text Box Styling */
+  .prose-invert .text-box,
+  .text-box {
+    @apply border-2 border-purple-500/50 rounded-lg p-4 my-4 bg-zinc-900/30;
+    display: block;
+    position: relative;
+  }
+
+  .prose-invert .text-box p:last-child,
+  .text-box p:last-child {
+    @apply mb-0;
+  }
+
+  /* Resizable TextBox - Word-like drag resize */
+  .prose-invert .resizable-textbox-wrapper {
+    display: block;
+    margin: 1rem 0;
+  }
+
+  .prose-invert .textbox-container {
+    user-select: none;
+  }
+
+  .prose-invert .text-box-content {
+    user-select: text;
+  }
+
+  .prose-invert .text-box-inner-content {
+    outline: none;
+  }
+
+  .prose-invert .drag-handle {
+    transition: opacity 0.2s;
+  }
+
+  .prose-invert .drag-handle:hover {
+    opacity: 0.9;
+  }
+
+  .prose-invert .textbox-container .resize-handle {
+    transition: transform 0.1s;
+  }
+
+  .prose-invert .textbox-container .resize-handle:hover {
+    transform: scale(1.3);
   }
 
   /* Font Size Support */
@@ -352,22 +402,64 @@ body {
     list-style-type: square !important;
   }
 
-  .prose-invert ul.list-checkmark li::marker,
-  ul.list-checkmark li::marker {
-    content: "✓ " !important;
+  /* Checkmark List - Using ::before for better compatibility */
+  .prose-invert ul.list-checkmark,
+  ul.list-checkmark {
+    list-style-type: none !important;
+  }
+
+  .prose-invert ul.list-checkmark li,
+  ul.list-checkmark li {
+    position: relative;
+    padding-left: 0.5em;
+  }
+
+  .prose-invert ul.list-checkmark li::before,
+  ul.list-checkmark li::before {
+    content: "✓";
+    position: absolute;
+    left: -1.5em;
     color: #a855f7;
     font-weight: bold;
   }
 
-  .prose-invert ul.list-arrow li::marker,
-  ul.list-arrow li::marker {
-    content: "➤ " !important;
+  /* Arrow List - Using ::before for better compatibility */
+  .prose-invert ul.list-arrow,
+  ul.list-arrow {
+    list-style-type: none !important;
+  }
+
+  .prose-invert ul.list-arrow li,
+  ul.list-arrow li {
+    position: relative;
+    padding-left: 0.5em;
+  }
+
+  .prose-invert ul.list-arrow li::before,
+  ul.list-arrow li::before {
+    content: "➤";
+    position: absolute;
+    left: -1.5em;
     color: #a855f7;
   }
 
-  .prose-invert ul.list-diamond li::marker,
-  ul.list-diamond li::marker {
-    content: "◆ " !important;
+  /* Diamond List - Using ::before for better compatibility */
+  .prose-invert ul.list-diamond,
+  ul.list-diamond {
+    list-style-type: none !important;
+  }
+
+  .prose-invert ul.list-diamond li,
+  ul.list-diamond li {
+    position: relative;
+    padding-left: 0.5em;
+  }
+
+  .prose-invert ul.list-diamond li::before,
+  ul.list-diamond li::before {
+    content: "◆";
+    position: absolute;
+    left: -1.5em;
     color: #a855f7;
   }
 
@@ -402,8 +494,9 @@ body {
   .prose-invert ol[class*="list-"],
   ul[class*="list-"],
   ol[class*="list-"] {
-    @apply text-gray-300 mb-4 pl-8;
+    @apply text-gray-300 mb-4;
     display: block;
+    padding-left: 2.5em;
   }
 
   .prose-invert ul[class*="list-"] li,
@@ -412,6 +505,16 @@ body {
   ol[class*="list-"] li {
     @apply mb-2;
     display: list-item;
+  }
+
+  /* Standard bullet lists (disc, circle, square) keep normal list-item display */
+  .prose-invert ul.list-disc li,
+  .prose-invert ul.list-circle li,
+  .prose-invert ul.list-square li,
+  ul.list-disc li,
+  ul.list-circle li,
+  ul.list-square li {
+    padding-left: 0;
   }
 
   /* Blog Grid - 2 Column Layout */

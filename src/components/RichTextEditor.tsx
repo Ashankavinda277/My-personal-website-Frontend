@@ -1,6 +1,6 @@
 "use client";
 
-import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer } from "@tiptap/react";
+import { useEditor, EditorContent, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import BulletList from "@tiptap/extension-bullet-list";
 import OrderedList from "@tiptap/extension-ordered-list";
@@ -32,9 +32,22 @@ import {
     Redo,
     ChevronDown,
     Type,
+    Palette,
+    Square,
 } from "lucide-react";
 import { useCallback, useState, useEffect, useRef } from "react";
 import api from "../utils/api";
+
+// Extend TipTap Commands interface for custom commands
+declare module '@tiptap/core' {
+    interface Commands<ReturnType> {
+        textBox: {
+            setTextBox: () => ReturnType;
+            toggleTextBox: () => ReturnType;
+        };
+    }
+}
+
 
 // Font Size Extension
 const FontSize = Extension.create({
@@ -422,6 +435,476 @@ const ResizableImage = Node.create({
     },
 });
 
+// Resizable TextBox Component
+const ResizableTextBoxComponent = (props: any) => {
+    const [dimensions, setDimensions] = useState({
+        width: props.node.attrs.width || 400,
+        height: props.node.attrs.height || 200,
+    });
+    const [position, setPosition] = useState({
+        x: props.node.attrs.x || 0,
+        y: props.node.attrs.y || 0,
+    });
+    const [isDragging, setIsDragging] = useState(false);
+    const currentDimensions = useRef(dimensions);
+    const currentPosition = useRef(position);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // Update refs when values change
+    useEffect(() => {
+        currentDimensions.current = dimensions;
+    }, [dimensions]);
+
+    useEffect(() => {
+        currentPosition.current = position;
+    }, [position]);
+
+    // Handle resize
+    const handleResizeMouseDown = (e: React.MouseEvent, corner: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startWidth = dimensions.width;
+        const startHeight = dimensions.height;
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            const dx = moveEvent.clientX - startX;
+            const dy = moveEvent.clientY - startY;
+
+            let newWidth = startWidth;
+            let newHeight = startHeight;
+
+            if (corner.includes('e')) {
+                newWidth = Math.max(200, startWidth + dx);
+            }
+            if (corner.includes('w')) {
+                newWidth = Math.max(200, startWidth - dx);
+            }
+            if (corner.includes('s')) {
+                newHeight = Math.max(100, startHeight + dy);
+            }
+            if (corner.includes('n')) {
+                newHeight = Math.max(100, startHeight - dy);
+            }
+
+            setDimensions({ width: newWidth, height: newHeight });
+        };
+
+        const handleMouseUp = () => {
+            props.updateAttributes({
+                width: currentDimensions.current.width,
+                height: currentDimensions.current.height,
+            });
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    };
+
+    // Handle drag
+    const handleDragMouseDown = (e: React.MouseEvent) => {
+        if (!props.selected) return;
+        
+        // Only allow dragging from the drag handle or border, not the content
+        const target = e.target as HTMLElement;
+        if (!target.classList.contains('drag-handle') && 
+            !target.classList.contains('textbox-border')) {
+            return;
+        }
+
+        e.preventDefault();
+        setIsDragging(true);
+        
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startPosX = position.x;
+        const startPosY = position.y;
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            const dx = moveEvent.clientX - startX;
+            const dy = moveEvent.clientY - startY;
+
+            setPosition({
+                x: startPosX + dx,
+                y: startPosY + dy,
+            });
+        };
+
+        const handleMouseUp = () => {
+            setIsDragging(false);
+            props.updateAttributes({
+                x: currentPosition.current.x,
+                y: currentPosition.current.y,
+            });
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    };
+
+    return (
+        <NodeViewWrapper className="resizable-textbox-wrapper">
+            <div 
+                ref={containerRef}
+                className="textbox-container" 
+                style={{ 
+                    width: `${dimensions.width}px`,
+                    minHeight: `${dimensions.height}px`,
+                    position: 'relative',
+                    left: `${position.x}px`,
+                    top: `${position.y}px`,
+                    margin: '1rem 0',
+                }}
+            >
+                {/* Drag Handle - Only visible when selected */}
+                {props.selected && (
+                    <>
+                        <div
+                            className="drag-handle"
+                            onMouseDown={handleDragMouseDown}
+                            style={{
+                                position: 'absolute',
+                                top: '-20px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                width: '40px',
+                                height: '20px',
+                                backgroundColor: 'rgb(168, 85, 247)',
+                                borderRadius: '4px 4px 0 0',
+                                cursor: isDragging ? 'grabbing' : 'grab',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '10px',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                zIndex: 20,
+                            }}
+                            title="Drag to move"
+                        >
+                            ⠿
+                        </div>
+                        
+                        {/* Remove Text Box Button */}
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                // Lift the content out of the text box
+                                const { view, state } = props.editor;
+                                const { $from } = state.selection;
+                                
+                                // Find the text box node
+                                for (let d = $from.depth; d > 0; d--) {
+                                    if ($from.node(d).type.name === 'textBox') {
+                                        props.editor.chain().focus().lift('textBox').run();
+                                        break;
+                                    }
+                                }
+                            }}
+                            style={{
+                                position: 'absolute',
+                                top: '-20px',
+                                right: '0',
+                                width: '60px',
+                                height: '20px',
+                                backgroundColor: 'rgb(239, 68, 68)',
+                                borderRadius: '4px 4px 0 0',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '9px',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                border: 'none',
+                                zIndex: 20,
+                                transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = 'rgb(220, 38, 38)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'rgb(239, 68, 68)';
+                            }}
+                            title="Remove text box (keep content)"
+                        >
+                            ✕ Remove
+                        </button>
+                    </>
+                )}
+                
+                <div 
+                    className="text-box-content"
+                    style={{
+                        width: '100%',
+                        minHeight: '100%',
+                        padding: '1rem',
+                        border: '2px solid rgba(168, 85, 247, 0.5)',
+                        borderRadius: '0.5rem',
+                        backgroundColor: 'rgba(24, 24, 27, 0.3)',
+                        cursor: 'text',
+                    }}
+                >
+                    <NodeViewContent className="text-box-inner-content" />
+                </div>
+                
+                {props.selected && (
+                    <>
+                        {/* Corner resize handles */}
+                        <div
+                            className="resize-handle nw"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'nw')}
+                            style={{
+                                position: 'absolute',
+                                top: '-4px',
+                                left: '-4px',
+                                width: '10px',
+                                height: '10px',
+                                backgroundColor: 'rgb(168, 85, 247)',
+                                border: '2px solid white',
+                                borderRadius: '50%',
+                                cursor: 'nw-resize',
+                                zIndex: 10,
+                            }}
+                        />
+                        <div
+                            className="resize-handle ne"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'ne')}
+                            style={{
+                                position: 'absolute',
+                                top: '-4px',
+                                right: '-4px',
+                                width: '10px',
+                                height: '10px',
+                                backgroundColor: 'rgb(168, 85, 247)',
+                                border: '2px solid white',
+                                borderRadius: '50%',
+                                cursor: 'ne-resize',
+                                zIndex: 10,
+                            }}
+                        />
+                        <div
+                            className="resize-handle sw"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'sw')}
+                            style={{
+                                position: 'absolute',
+                                bottom: '-4px',
+                                left: '-4px',
+                                width: '10px',
+                                height: '10px',
+                                backgroundColor: 'rgb(168, 85, 247)',
+                                border: '2px solid white',
+                                borderRadius: '50%',
+                                cursor: 'sw-resize',
+                                zIndex: 10,
+                            }}
+                        />
+                        <div
+                            className="resize-handle se"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'se')}
+                            style={{
+                                position: 'absolute',
+                                bottom: '-4px',
+                                right: '-4px',
+                                width: '10px',
+                                height: '10px',
+                                backgroundColor: 'rgb(168, 85, 247)',
+                                border: '2px solid white',
+                                borderRadius: '50%',
+                                cursor: 'se-resize',
+                                zIndex: 10,
+                            }}
+                        />
+                        
+                        {/* Edge resize handles */}
+                        <div
+                            className="resize-handle n"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'n')}
+                            style={{
+                                position: 'absolute',
+                                top: '-4px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                width: '10px',
+                                height: '10px',
+                                backgroundColor: 'rgb(168, 85, 247)',
+                                border: '2px solid white',
+                                borderRadius: '50%',
+                                cursor: 'n-resize',
+                                zIndex: 10,
+                            }}
+                        />
+                        <div
+                            className="resize-handle s"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 's')}
+                            style={{
+                                position: 'absolute',
+                                bottom: '-4px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                width: '10px',
+                                height: '10px',
+                                backgroundColor: 'rgb(168, 85, 247)',
+                                border: '2px solid white',
+                                borderRadius: '50%',
+                                cursor: 's-resize',
+                                zIndex: 10,
+                            }}
+                        />
+                        <div
+                            className="resize-handle e"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'e')}
+                            style={{
+                                position: 'absolute',
+                                top: '50%',
+                                right: '-4px',
+                                transform: 'translateY(-50%)',
+                                width: '10px',
+                                height: '10px',
+                                backgroundColor: 'rgb(168, 85, 247)',
+                                border: '2px solid white',
+                                borderRadius: '50%',
+                                cursor: 'e-resize',
+                                zIndex: 10,
+                            }}
+                        />
+                        <div
+                            className="resize-handle w"
+                            onMouseDown={(e) => handleResizeMouseDown(e, 'w')}
+                            style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '-4px',
+                                transform: 'translateY(-50%)',
+                                width: '10px',
+                                height: '10px',
+                                backgroundColor: 'rgb(168, 85, 247)',
+                                border: '2px solid white',
+                                borderRadius: '50%',
+                                cursor: 'w-resize',
+                                zIndex: 10,
+                            }}
+                        />
+                    </>
+                )}
+            </div>
+        </NodeViewWrapper>
+    );
+};
+
+// TextBox Extension - Like Word's text box
+const TextBox = Node.create({
+    name: 'textBox',
+    group: 'block',
+    content: 'block+',
+    draggable: true,
+    isolating: false,
+
+    addAttributes() {
+        return {
+            class: {
+                default: 'text-box',
+            },
+            width: {
+                default: 400,
+                parseHTML: element => element.getAttribute('data-width'),
+                renderHTML: attributes => {
+                    return {
+                        'data-width': attributes.width,
+                    };
+                },
+            },
+            height: {
+                default: 200,
+                parseHTML: element => element.getAttribute('data-height'),
+                renderHTML: attributes => {
+                    return {
+                        'data-height': attributes.height,
+                    };
+                },
+            },
+            x: {
+                default: 0,
+                parseHTML: element => element.getAttribute('data-x'),
+                renderHTML: attributes => {
+                    return {
+                        'data-x': attributes.x,
+                    };
+                },
+            },
+            y: {
+                default: 0,
+                parseHTML: element => element.getAttribute('data-y'),
+                renderHTML: attributes => {
+                    return {
+                        'data-y': attributes.y,
+                    };
+                },
+            },
+        };
+    },
+
+    parseHTML() {
+        return [
+            {
+                tag: 'div.text-box',
+            },
+        ];
+    },
+
+    renderHTML({ HTMLAttributes }) {
+        return ['div', { 
+            ...HTMLAttributes, 
+            class: 'text-box',
+            style: `width: ${HTMLAttributes['data-width'] || 400}px; min-height: ${HTMLAttributes['data-height'] || 200}px; position: relative; left: ${HTMLAttributes['data-x'] || 0}px; top: ${HTMLAttributes['data-y'] || 0}px;`
+        }, 0];
+    },
+
+    addNodeView() {
+        return ReactNodeViewRenderer(ResizableTextBoxComponent);
+    },
+
+    addCommands() {
+        return {
+            setTextBox:
+                () =>
+                ({ commands }) => {
+                    return commands.wrapIn(this.name);
+                },
+            toggleTextBox:
+                () =>
+                ({ commands, state, chain }) => {
+                    const { $from } = state.selection;
+                    
+                    // Check if cursor is inside a text box
+                    let isInTextBox = false;
+                    for (let d = $from.depth; d > 0; d--) {
+                        if ($from.node(d).type.name === this.name) {
+                            isInTextBox = true;
+                            break;
+                        }
+                    }
+                    
+                    if (isInTextBox) {
+                        // Remove the text box, keeping the content
+                        return chain().lift(this.name).run();
+                    } else {
+                        // Wrap selection in a text box
+                        return chain().wrapIn(this.name).run();
+                    }
+                },
+        };
+    },
+});
+
 interface RichTextEditorProps {
     value: string;
     onChange: (html: string) => void;
@@ -435,9 +918,11 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     const [currentBulletStyle, setCurrentBulletStyle] = useState("list-disc");
     const [currentNumberStyle, setCurrentNumberStyle] = useState("list-decimal");
     const [currentFontSize, setCurrentFontSize] = useState("16px");
+    const [currentColor, setCurrentColor] = useState("#ffffff");
     const bulletMenuRef = useRef<HTMLDivElement>(null);
     const numberMenuRef = useRef<HTMLDivElement>(null);
     const fontSizeMenuRef = useRef<HTMLDivElement>(null);
+    const colorInputRef = useRef<HTMLInputElement>(null);
 
     // Font size options (like Microsoft Word)
     const fontSizes = [
@@ -490,8 +975,11 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
             TextStyle,
             FontSize,
             FontFamily,
-            Color,
+            Color.configure({
+                types: ['textStyle'],
+            }),
             ResizableImage,
+            TextBox,
             Link.configure({
                 openOnClick: false,
                 HTMLAttributes: {
@@ -506,6 +994,18 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         immediatelyRender: false,
         onUpdate: ({ editor }) => {
             onChange(editor.getHTML());
+            // Update current color from editor
+            const color = editor.getAttributes('textStyle').color;
+            if (color) {
+                setCurrentColor(color);
+            }
+        },
+        onSelectionUpdate: ({ editor }) => {
+            // Update current color when selection changes
+            const color = editor.getAttributes('textStyle').color;
+            if (color) {
+                setCurrentColor(color);
+            }
         },
         editorProps: {
             attributes: {
@@ -513,6 +1013,15 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
             },
         },
     });
+
+    // Update editor content when value prop changes (e.g., when editing a blog)
+    useEffect(() => {
+        if (editor && value !== editor.getHTML()) {
+            queueMicrotask(() => {
+                editor.commands.setContent(value);
+            });
+        }
+    }, [value, editor]);
 
     const addImage = useCallback(async () => {
         const input = document.createElement("input");
@@ -697,6 +1206,52 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                             ))}
                         </div>
                     )}
+                </div>
+
+                <div className="w-px h-6 bg-white/10 mx-1" />
+
+                {/* Text Color Picker */}
+                <div className="relative">
+                    <input
+                        ref={colorInputRef}
+                        type="color"
+                        value={currentColor}
+                        onChange={(e) => {
+                            const color = e.target.value;
+                            setCurrentColor(color);
+                            if (editor) {
+                                // Use chain to ensure focus is maintained
+                                editor.chain().focus().setColor(color).run();
+                            }
+                        }}
+                        onBlur={() => {
+                            // Refocus editor after color picker closes
+                            if (editor) {
+                                editor.commands.focus();
+                            }
+                        }}
+                        className="hidden"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (colorInputRef.current) {
+                                colorInputRef.current.click();
+                                // Small delay to ensure the color picker opens
+                                setTimeout(() => {
+                                    colorInputRef.current?.focus();
+                                }, 10);
+                            }
+                        }}
+                        className="toolbar-btn flex items-center gap-1"
+                        title="Text Color"
+                    >
+                        <Palette size={16} />
+                        <div 
+                            className="w-4 h-4 rounded border border-white/20" 
+                            style={{ backgroundColor: currentColor }}
+                        />
+                    </button>
                 </div>
 
                 <div className="w-px h-6 bg-white/10 mx-1" />
@@ -890,6 +1445,16 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                     title="Code Block"
                 >
                     <Code size={16} />
+                </button>
+
+                {/* Text Box */}
+                <button
+                    type="button"
+                    onClick={() => editor.chain().focus().toggleTextBox().run()}
+                    className={`toolbar-btn ${editor.isActive("textBox") ? "is-active" : ""}`}
+                    title="Insert/Remove Text Box (wrap content in a movable box)"
+                >
+                    <Square size={16} />
                 </button>
 
                 <div className="w-px h-6 bg-white/10 mx-1" />
