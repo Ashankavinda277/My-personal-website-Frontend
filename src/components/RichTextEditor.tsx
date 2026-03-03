@@ -72,17 +72,17 @@ const FontSize = Extension.create({
         return {
             setFontSize:
                 (fontSize: string) =>
-                ({ chain }) => {
-                    return chain().setMark("textStyle", { fontSize }).run();
-                },
+                    ({ chain }) => {
+                        return chain().setMark("textStyle", { fontSize }).run();
+                    },
             unsetFontSize:
                 () =>
-                ({ chain }) => {
-                    return chain()
-                        .setMark("textStyle", { fontSize: null })
-                        .removeEmptyTextStyle()
-                        .run();
-                },
+                    ({ chain }) => {
+                        return chain()
+                            .setMark("textStyle", { fontSize: null })
+                            .removeEmptyTextStyle()
+                            .run();
+                    },
         };
     },
 });
@@ -147,7 +147,7 @@ const ResizableImageComponent = (props: any) => {
                 const aspectRatio = img.height / img.width;
                 const width = Math.min(img.width, maxWidth);
                 const height = width * aspectRatio;
-                
+
                 setDimensions({ width, height });
                 props.updateAttributes({ width, height });
             };
@@ -157,11 +157,12 @@ const ResizableImageComponent = (props: any) => {
 
     const handleMouseDown = (e: React.MouseEvent, corner: string) => {
         e.preventDefault();
-        
+
         const startX = e.clientX;
         const startY = e.clientY;
         const startWidth = dimensions.width;
         const startHeight = dimensions.height;
+        const aspectRatio = startHeight / startWidth;
 
         const handleMouseMove = (moveEvent: MouseEvent) => {
             const dx = moveEvent.clientX - startX;
@@ -169,18 +170,22 @@ const ResizableImageComponent = (props: any) => {
 
             let newWidth = startWidth;
             let newHeight = startHeight;
+            let preserveRatio = true;
 
-            if (corner.includes('e')) {
-                newWidth = Math.max(50, startWidth + dx);
-            }
-            if (corner.includes('w')) {
-                newWidth = Math.max(50, startWidth - dx);
-            }
-            if (corner.includes('s')) {
-                newHeight = Math.max(50, startHeight + dy);
-            }
-            if (corner.includes('n')) {
-                newHeight = Math.max(50, startHeight - dy);
+            // Determine if dragging a corner (preserve ratio) or an edge (free resize)
+            if (['nw', 'ne', 'sw', 'se'].includes(corner)) {
+                if (corner.includes('e')) {
+                    newWidth = Math.max(50, startWidth + dx);
+                } else if (corner.includes('w')) {
+                    newWidth = Math.max(50, startWidth - dx);
+                }
+                newHeight = newWidth * aspectRatio;
+            } else {
+                preserveRatio = false;
+                if (corner === 'e') newWidth = Math.max(50, startWidth + dx);
+                if (corner === 'w') newWidth = Math.max(50, startWidth - dx);
+                if (corner === 's') newHeight = Math.max(50, startHeight + dy);
+                if (corner === 'n') newHeight = Math.max(50, startHeight - dy);
             }
 
             setDimensions({ width: newWidth, height: newHeight });
@@ -202,11 +207,11 @@ const ResizableImageComponent = (props: any) => {
 
     return (
         <NodeViewWrapper className="resizable-image-wrapper" data-drag-handle>
-            <div 
+            <div
                 className="image-container"
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                style={{ 
+                style={{
                     width: `${dimensions.width}px`,
                     height: `${dimensions.height}px`,
                     position: 'relative',
@@ -214,41 +219,6 @@ const ResizableImageComponent = (props: any) => {
                     margin: '1rem 0',
                 }}
             >
-                {/* Drag Handle */}
-                <div
-                    data-drag-handle
-                    style={{
-                        position: 'absolute',
-                        top: '-8px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: '40px',
-                        height: '20px',
-                        backgroundColor: 'rgba(168, 85, 247, 0.9)',
-                        borderRadius: '4px 4px 0 0',
-                        cursor: 'grab',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 20,
-                        opacity: (props.selected || isHovered) ? 1 : 0,
-                        transition: 'opacity 0.2s',
-                    }}
-                    onMouseDown={(e) => {
-                        e.currentTarget.style.cursor = 'grabbing';
-                    }}
-                    onMouseUp={(e) => {
-                        e.currentTarget.style.cursor = 'grab';
-                    }}
-                    title="Drag to move image"
-                >
-                    <svg width="16" height="6" viewBox="0 0 16 6" fill="white">
-                        <circle cx="3" cy="3" r="1.5" />
-                        <circle cx="8" cy="3" r="1.5" />
-                        <circle cx="13" cy="3" r="1.5" />
-                    </svg>
-                </div>
-                
                 <img
                     ref={imageRef}
                     src={props.node.attrs.src}
@@ -256,10 +226,17 @@ const ResizableImageComponent = (props: any) => {
                     style={{
                         width: '100%',
                         height: '100%',
-                        objectFit: 'contain',
+                        objectFit: 'fill',
                         borderRadius: '0.5rem',
+                        cursor: 'grab',
                     }}
-                    draggable="false"
+                    onMouseDown={(e) => {
+                        if (!props.selected) e.currentTarget.style.cursor = 'grabbing';
+                    }}
+                    onMouseUp={(e) => {
+                        e.currentTarget.style.cursor = 'grab';
+                    }}
+                    draggable="true"
                 />
                 {props.selected && (
                     <>
@@ -328,7 +305,7 @@ const ResizableImageComponent = (props: any) => {
                                 zIndex: 10,
                             }}
                         />
-                        
+
                         {/* Edge handles */}
                         <div
                             className="resize-handle n"
@@ -398,7 +375,7 @@ const ResizableImageComponent = (props: any) => {
                                 zIndex: 10,
                             }}
                         />
-                        
+
                         {/* Selection border */}
                         <div
                             style={{
@@ -478,8 +455,8 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
 
     // Font size options (like Microsoft Word)
     const fontSizes = [
-        "8px", "9px", "10px", "11px", "12px", "14px", 
-        "16px", "18px", "20px", "22px", "24px", "26px", 
+        "8px", "9px", "10px", "11px", "12px", "14px",
+        "16px", "18px", "20px", "22px", "24px", "26px",
         "28px", "36px", "48px", "72px"
     ];
 
@@ -624,9 +601,9 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
 
     const applyBulletStyle = useCallback((styleClass: string) => {
         if (!editor) return;
-        
+
         const isActive = editor.isActive("bulletList");
-        
+
         if (isActive) {
             // List is already active, just update the class
             editor.commands.updateAttributes("bulletList", { class: styleClass });
@@ -638,16 +615,16 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                 editor.commands.updateAttributes("bulletList", { class: styleClass });
             }, 0);
         }
-        
+
         setCurrentBulletStyle(styleClass);
         setShowBulletMenu(false);
     }, [editor]);
 
     const applyNumberStyle = useCallback((styleClass: string) => {
         if (!editor) return;
-        
+
         const isActive = editor.isActive("orderedList");
-        
+
         if (isActive) {
             // List is already active, just update the class
             editor.commands.updateAttributes("orderedList", { class: styleClass });
@@ -659,20 +636,20 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                 editor.commands.updateAttributes("orderedList", { class: styleClass });
             }, 0);
         }
-        
+
         setCurrentNumberStyle(styleClass);
         setShowNumberMenu(false);
     }, [editor]);
 
     const applyFontSize = useCallback((size: string) => {
         if (!editor) return;
-        
+
         if (size === "default") {
             editor.chain().focus().unsetFontSize().run();
         } else {
             editor.chain().focus().setFontSize(size).run();
         }
-        
+
         setCurrentFontSize(size);
         setShowFontSizeMenu(false);
     }, [editor]);
@@ -740,9 +717,8 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                                     key={size}
                                     type="button"
                                     onClick={() => applyFontSize(size)}
-                                    className={`w-full text-left px-3 py-2 hover:bg-white/10 rounded flex items-center justify-between ${
-                                        currentFontSize === size ? "bg-purple-600/20 text-purple-400" : "text-gray-300"
-                                    }`}
+                                    className={`w-full text-left px-3 py-2 hover:bg-white/10 rounded flex items-center justify-between ${currentFontSize === size ? "bg-purple-600/20 text-purple-400" : "text-gray-300"
+                                        }`}
                                     style={{ fontSize: size }}
                                 >
                                     <span>{size.replace("px", "")}</span>
