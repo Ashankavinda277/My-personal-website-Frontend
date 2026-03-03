@@ -1019,7 +1019,6 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
             Underline,
             TextStyle,
             FontSize,
-            FontFamily,
             Color.configure({
                 types: ['textStyle'],
             }),
