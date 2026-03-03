@@ -6,6 +6,7 @@ import api from "../../../utils/api";
 import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, User, Clock } from "lucide-react";
 import Link from "next/link";
+import { formatDate, calculateReadTime } from "../../../utils/format";
 
 interface Blog {
     _id?: string;
@@ -86,27 +87,30 @@ export default function BlogPost() {
                             {blog.title}
                         </h1>
                         {/* Metadata on Image */}
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-200">
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-200 drop-shadow-lg">
                             {blog.type && <span className="text-purple-400 font-semibold">#{blog.type}</span>}
                             <div className="w-1 h-1 bg-gray-400 rounded-full" />
                             <span className="flex items-center gap-1"><User size={14} /> {blog.author || "Admin"}</span>
                             <div className="w-1 h-1 bg-gray-400 rounded-full" />
-                            <span className="flex items-center gap-1"><Calendar size={14} /> Today</span>
+                            <span className="flex items-center gap-1"><Calendar size={14} /> {formatDate(blog.created_at)}</span>
+                            <div className="w-1 h-1 bg-gray-400 rounded-full" />
+                            <span className="flex items-center gap-1"><Clock size={14} /> {calculateReadTime(blog.content)}</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Content Container */}
-            <div className="container mx-auto px-6 mt-8 relative z-10">
+            <div className="container mx-auto px-6 mt-12 relative z-10">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
                     className="max-w-4xl mx-auto"
                 >
                     {/* Content Body */}
                     <div
-                        className="prose prose-invert prose-lg max-w-none text-gray-300 leading-relaxed"
+                        className="prose prose-invert prose-lg md:prose-xl max-w-none text-gray-300 leading-relaxed"
                         dangerouslySetInnerHTML={{ __html: blog.content }}
                     />
                 </motion.div>
