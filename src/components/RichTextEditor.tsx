@@ -129,9 +129,11 @@ const ResizableImageComponent = (props: any) => {
         width: props.node.attrs.width || 300,
         height: props.node.attrs.height || 200,
     });
-    const [isHovered, setIsHovered] = useState(false);
+    const [isResizing, setIsResizing] = useState(false);
     const imageRef = useRef<HTMLImageElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const currentDimensions = useRef(dimensions);
+    const alignment = props.node.attrs.alignment || 'left';
 
     // Update ref when dimensions change
     useEffect(() => {
@@ -143,56 +145,70 @@ const ResizableImageComponent = (props: any) => {
         if (imageRef.current && (!props.node.attrs.width || !props.node.attrs.height)) {
             const img = new window.Image();
             img.onload = () => {
-                const maxWidth = 600; // Max initial width
-                const aspectRatio = img.height / img.width;
+                const maxWidth = 600;
+                const imgAspectRatio = img.height / img.width;
                 const width = Math.min(img.width, maxWidth);
-                const height = width * aspectRatio;
+                const height = width * imgAspectRatio;
 
-                setDimensions({ width, height });
-                props.updateAttributes({ width, height });
+                if (width !== dimensions.width || height !== dimensions.height) {
+                    setDimensions({ width, height });
+                    setTimeout(() => {
+                        props.updateAttributes({ width, height });
+                    }, 0);
+                }
             };
             img.src = props.node.attrs.src;
         }
-    }, []);
+    }, [props.node.attrs.src, props.node.attrs.width, props.node.attrs.height]);
 
-    const handleMouseDown = (e: React.MouseEvent, corner: string) => {
+    const handleResizeMouseDown = (e: React.MouseEvent, handle: string) => {
         e.preventDefault();
+        e.stopPropagation(); // Prevent TipTap drag from interfering
+        setIsResizing(true);
 
         const startX = e.clientX;
         const startY = e.clientY;
-        const startWidth = dimensions.width;
-        const startHeight = dimensions.height;
+        const startWidth = currentDimensions.current.width;
+        const startHeight = currentDimensions.current.height;
         const aspectRatio = startHeight / startWidth;
 
         const handleMouseMove = (moveEvent: MouseEvent) => {
+            moveEvent.preventDefault();
             const dx = moveEvent.clientX - startX;
             const dy = moveEvent.clientY - startY;
 
             let newWidth = startWidth;
             let newHeight = startHeight;
-            let preserveRatio = true;
 
-            // Determine if dragging a corner (preserve ratio) or an edge (free resize)
-            if (['nw', 'ne', 'sw', 'se'].includes(corner)) {
-                if (corner.includes('e')) {
+            // Corner handles: preserve aspect ratio
+            if (['nw', 'ne', 'sw', 'se'].includes(handle)) {
+                // Use the dominant axis for corner resize
+                const absDx = Math.abs(dx);
+                const absDy = Math.abs(dy);
+
+                if (handle === 'se') {
                     newWidth = Math.max(50, startWidth + dx);
-                } else if (corner.includes('w')) {
+                } else if (handle === 'sw') {
+                    newWidth = Math.max(50, startWidth - dx);
+                } else if (handle === 'ne') {
+                    newWidth = Math.max(50, startWidth + dx);
+                } else if (handle === 'nw') {
                     newWidth = Math.max(50, startWidth - dx);
                 }
                 newHeight = newWidth * aspectRatio;
             } else {
-                preserveRatio = false;
-                if (corner === 'e') newWidth = Math.max(50, startWidth + dx);
-                if (corner === 'w') newWidth = Math.max(50, startWidth - dx);
-                if (corner === 's') newHeight = Math.max(50, startHeight + dy);
-                if (corner === 'n') newHeight = Math.max(50, startHeight - dy);
+                // Edge handles: free resize on single axis
+                if (handle === 'e') newWidth = Math.max(50, startWidth + dx);
+                if (handle === 'w') newWidth = Math.max(50, startWidth - dx);
+                if (handle === 's') newHeight = Math.max(50, startHeight + dy);
+                if (handle === 'n') newHeight = Math.max(50, startHeight - dy);
             }
 
             setDimensions({ width: newWidth, height: newHeight });
         };
 
         const handleMouseUp = () => {
-            // Update the node attributes with final dimensions
+            setIsResizing(false);
             props.updateAttributes({
                 width: currentDimensions.current.width,
                 height: currentDimensions.current.height,
@@ -205,192 +221,140 @@ const ResizableImageComponent = (props: any) => {
         document.addEventListener('mouseup', handleMouseUp);
     };
 
+    const setAlignment = (align: string) => {
+        props.updateAttributes({ alignment: align });
+    };
+
+    // Compute container alignment style
+    const alignmentStyle: React.CSSProperties = {
+        display: 'flex',
+        justifyContent: alignment === 'center' ? 'center' : alignment === 'right' ? 'flex-end' : 'flex-start',
+    };
+
+    // Resize handle helper to reduce repetition
+    const ResizeHandle = ({ handle, style }: { handle: string; style: React.CSSProperties }) => (
+        <div
+            onMouseDown={(e) => handleResizeMouseDown(e, handle)}
+            style={{
+                position: 'absolute',
+                width: '12px',
+                height: '12px',
+                backgroundColor: 'rgb(168, 85, 247)',
+                border: '2px solid white',
+                borderRadius: '50%',
+                zIndex: 10,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                ...style,
+            }}
+        />
+    );
+
     return (
-        <NodeViewWrapper className="resizable-image-wrapper" data-drag-handle>
-            <div
-                className="image-container"
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-                style={{
-                    width: `${dimensions.width}px`,
-                    height: `${dimensions.height}px`,
-                    position: 'relative',
-                    display: 'inline-block',
-                    margin: '1rem 0',
-                }}
-            >
-                <img
-                    ref={imageRef}
-                    src={props.node.attrs.src}
-                    alt={props.node.attrs.alt}
+        <NodeViewWrapper className="resizable-image-wrapper">
+            <div style={alignmentStyle}>
+                <div
+                    ref={containerRef}
+                    className="image-container"
                     style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'fill',
-                        borderRadius: '0.5rem',
-                        cursor: 'grab',
+                        width: `${dimensions.width}px`,
+                        height: `${dimensions.height}px`,
+                        position: 'relative',
+                        display: 'inline-block',
+                        margin: '0.5rem 0',
                     }}
-                    onMouseDown={(e) => {
-                        if (!props.selected) e.currentTarget.style.cursor = 'grabbing';
-                    }}
-                    onMouseUp={(e) => {
-                        e.currentTarget.style.cursor = 'grab';
-                    }}
-                    draggable="true"
-                />
-                {props.selected && (
-                    <>
-                        {/* Corner handles */}
-                        <div
-                            className="resize-handle nw"
-                            onMouseDown={(e) => handleMouseDown(e, 'nw')}
-                            style={{
-                                position: 'absolute',
-                                top: '-4px',
-                                left: '-4px',
-                                width: '10px',
-                                height: '10px',
-                                backgroundColor: 'rgb(168, 85, 247)',
-                                border: '2px solid white',
-                                borderRadius: '50%',
-                                cursor: 'nw-resize',
-                                zIndex: 10,
-                            }}
-                        />
-                        <div
-                            className="resize-handle ne"
-                            onMouseDown={(e) => handleMouseDown(e, 'ne')}
-                            style={{
-                                position: 'absolute',
-                                top: '-4px',
-                                right: '-4px',
-                                width: '10px',
-                                height: '10px',
-                                backgroundColor: 'rgb(168, 85, 247)',
-                                border: '2px solid white',
-                                borderRadius: '50%',
-                                cursor: 'ne-resize',
-                                zIndex: 10,
-                            }}
-                        />
-                        <div
-                            className="resize-handle sw"
-                            onMouseDown={(e) => handleMouseDown(e, 'sw')}
-                            style={{
-                                position: 'absolute',
-                                bottom: '-4px',
-                                left: '-4px',
-                                width: '10px',
-                                height: '10px',
-                                backgroundColor: 'rgb(168, 85, 247)',
-                                border: '2px solid white',
-                                borderRadius: '50%',
-                                cursor: 'sw-resize',
-                                zIndex: 10,
-                            }}
-                        />
-                        <div
-                            className="resize-handle se"
-                            onMouseDown={(e) => handleMouseDown(e, 'se')}
-                            style={{
-                                position: 'absolute',
-                                bottom: '-4px',
-                                right: '-4px',
-                                width: '10px',
-                                height: '10px',
-                                backgroundColor: 'rgb(168, 85, 247)',
-                                border: '2px solid white',
-                                borderRadius: '50%',
-                                cursor: 'se-resize',
-                                zIndex: 10,
-                            }}
-                        />
+                >
+                    {/* Drag handle on the image itself */}
+                    <img
+                        ref={imageRef}
+                        src={props.node.attrs.src}
+                        alt={props.node.attrs.alt}
+                        data-drag-handle
+                        draggable={!isResizing}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'fill',
+                            borderRadius: '0.5rem',
+                            cursor: isResizing ? 'default' : 'grab',
+                            pointerEvents: 'auto',
+                        }}
+                    />
 
-                        {/* Edge handles */}
+                    {/* Alignment buttons - shown when selected */}
+                    {props.selected && (
                         <div
-                            className="resize-handle n"
-                            onMouseDown={(e) => handleMouseDown(e, 'n')}
                             style={{
                                 position: 'absolute',
-                                top: '-4px',
+                                top: '-36px',
                                 left: '50%',
                                 transform: 'translateX(-50%)',
-                                width: '10px',
-                                height: '10px',
-                                backgroundColor: 'rgb(168, 85, 247)',
-                                border: '2px solid white',
-                                borderRadius: '50%',
-                                cursor: 'n-resize',
-                                zIndex: 10,
+                                display: 'flex',
+                                gap: '2px',
+                                backgroundColor: 'rgba(30, 30, 30, 0.95)',
+                                borderRadius: '6px',
+                                padding: '4px',
+                                border: '1px solid rgba(168, 85, 247, 0.5)',
+                                zIndex: 20,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
                             }}
-                        />
-                        <div
-                            className="resize-handle s"
-                            onMouseDown={(e) => handleMouseDown(e, 's')}
-                            style={{
-                                position: 'absolute',
-                                bottom: '-4px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                width: '10px',
-                                height: '10px',
-                                backgroundColor: 'rgb(168, 85, 247)',
-                                border: '2px solid white',
-                                borderRadius: '50%',
-                                cursor: 's-resize',
-                                zIndex: 10,
-                            }}
-                        />
-                        <div
-                            className="resize-handle e"
-                            onMouseDown={(e) => handleMouseDown(e, 'e')}
-                            style={{
-                                position: 'absolute',
-                                top: '50%',
-                                right: '-4px',
-                                transform: 'translateY(-50%)',
-                                width: '10px',
-                                height: '10px',
-                                backgroundColor: 'rgb(168, 85, 247)',
-                                border: '2px solid white',
-                                borderRadius: '50%',
-                                cursor: 'e-resize',
-                                zIndex: 10,
-                            }}
-                        />
-                        <div
-                            className="resize-handle w"
-                            onMouseDown={(e) => handleMouseDown(e, 'w')}
-                            style={{
-                                position: 'absolute',
-                                top: '50%',
-                                left: '-4px',
-                                transform: 'translateY(-50%)',
-                                width: '10px',
-                                height: '10px',
-                                backgroundColor: 'rgb(168, 85, 247)',
-                                border: '2px solid white',
-                                borderRadius: '50%',
-                                cursor: 'w-resize',
-                                zIndex: 10,
-                            }}
-                        />
+                        >
+                            {[
+                                { align: 'left', icon: <AlignLeft size={14} /> },
+                                { align: 'center', icon: <AlignCenter size={14} /> },
+                                { align: 'right', icon: <AlignRight size={14} /> },
+                            ].map(({ align, icon }) => (
+                                <button
+                                    key={align}
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAlignment(align); }}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    style={{
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        backgroundColor: alignment === align ? 'rgb(168, 85, 247)' : 'transparent',
+                                        color: alignment === align ? 'white' : 'rgba(255,255,255,0.7)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                    }}
+                                >
+                                    {icon}
+                                </button>
+                            ))}
+                        </div>
+                    )}
 
-                        {/* Selection border */}
-                        <div
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                border: '2px solid rgb(168, 85, 247)',
-                                borderRadius: '0.5rem',
-                                pointerEvents: 'none',
-                            }}
-                        />
-                    </>
-                )}
+                    {/* Resize handles - shown when selected */}
+                    {props.selected && (
+                        <>
+                            {/* Corner handles */}
+                            <ResizeHandle handle="nw" style={{ top: '-5px', left: '-5px', cursor: 'nw-resize' }} />
+                            <ResizeHandle handle="ne" style={{ top: '-5px', right: '-5px', cursor: 'ne-resize' }} />
+                            <ResizeHandle handle="sw" style={{ bottom: '-5px', left: '-5px', cursor: 'sw-resize' }} />
+                            <ResizeHandle handle="se" style={{ bottom: '-5px', right: '-5px', cursor: 'se-resize' }} />
+
+                            {/* Edge handles */}
+                            <ResizeHandle handle="n" style={{ top: '-5px', left: '50%', marginLeft: '-6px', cursor: 'n-resize' }} />
+                            <ResizeHandle handle="s" style={{ bottom: '-5px', left: '50%', marginLeft: '-6px', cursor: 's-resize' }} />
+                            <ResizeHandle handle="e" style={{ top: '50%', right: '-5px', marginTop: '-6px', cursor: 'e-resize' }} />
+                            <ResizeHandle handle="w" style={{ top: '50%', left: '-5px', marginTop: '-6px', cursor: 'w-resize' }} />
+
+                            {/* Selection border */}
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    border: '2px solid rgb(168, 85, 247)',
+                                    borderRadius: '0.5rem',
+                                    pointerEvents: 'none',
+                                }}
+                            />
+                        </>
+                    )}
+                </div>
             </div>
         </NodeViewWrapper>
     );
@@ -413,9 +377,39 @@ const ResizableImage = Node.create({
             },
             width: {
                 default: 300,
+                parseHTML: element => {
+                    // Try inline style first, then attribute
+                    const styleWidth = element.style.width;
+                    if (styleWidth) return parseFloat(styleWidth);
+                    const attrWidth = element.getAttribute('width');
+                    if (attrWidth) return parseFloat(attrWidth);
+                    return 300;
+                },
+                renderHTML: attributes => {
+                    return { width: attributes.width };
+                },
             },
             height: {
                 default: 200,
+                parseHTML: element => {
+                    const styleHeight = element.style.height;
+                    if (styleHeight) return parseFloat(styleHeight);
+                    const attrHeight = element.getAttribute('height');
+                    if (attrHeight) return parseFloat(attrHeight);
+                    return 200;
+                },
+                renderHTML: attributes => {
+                    return { height: attributes.height };
+                },
+            },
+            alignment: {
+                default: 'left',
+                parseHTML: element => {
+                    return element.getAttribute('data-alignment') || 'left';
+                },
+                renderHTML: attributes => {
+                    return { 'data-alignment': attributes.alignment };
+                },
             },
         };
     },
@@ -429,7 +423,13 @@ const ResizableImage = Node.create({
     },
 
     renderHTML({ HTMLAttributes }) {
-        return ['img', HTMLAttributes];
+        const { width, height, ...rest } = HTMLAttributes;
+        return ['img', {
+            ...rest,
+            width: width,
+            height: height,
+            style: `width: ${width}px; height: ${height}px;`,
+        }];
     },
 
     addNodeView() {
@@ -531,7 +531,10 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     // Update editor content when value prop changes (for editing existing blogs)
     useEffect(() => {
         if (editor && value !== editor.getHTML()) {
-            editor.commands.setContent(value);
+            // Defer to avoid flushSync warning in React 19
+            queueMicrotask(() => {
+                editor.commands.setContent(value);
+            });
         }
     }, [editor, value]);
 

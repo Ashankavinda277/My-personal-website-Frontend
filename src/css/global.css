@@ -306,7 +306,7 @@ body {
   /* Resizable Images - Word-like drag resize */
   .prose-invert .resizable-image-wrapper {
     display: block;
-    margin: 1rem 0;
+    margin: 0.5rem 0;
   }
 
   .prose-invert .image-container {
@@ -314,16 +314,12 @@ body {
   }
 
   .prose-invert .image-container img {
-    pointer-events: none;
     user-select: none;
   }
 
-  .prose-invert .resize-handle {
-    transition: transform 0.1s;
-  }
-
-  .prose-invert .resize-handle:hover {
-    transform: scale(1.3);
+  .prose-invert .resizable-image-wrapper {
+    display: block;
+    margin: 0.5rem 0;
   }
 
   /* Drag and Drop states */
@@ -341,6 +337,31 @@ body {
   /* Drop indicator */
   .ProseMirror .drop-cursor {
     @apply bg-purple-500;
+  }
+
+  /* Image alignment in rendered content */
+  img[data-alignment="center"],
+  .prose img[data-alignment="center"],
+  .prose-invert img[data-alignment="center"] {
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  img[data-alignment="right"],
+  .prose img[data-alignment="right"],
+  .prose-invert img[data-alignment="right"] {
+    display: block !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+  }
+
+  img[data-alignment="left"],
+  .prose img[data-alignment="left"],
+  .prose-invert img[data-alignment="left"] {
+    display: block !important;
+    margin-left: 0 !important;
+    margin-right: auto !important;
   }
 
   /* Fallback for regular images */
