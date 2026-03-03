@@ -125,11 +125,12 @@ const CustomOrderedList = OrderedList.extend({
 
 // Resizable Image Component
 const ResizableImageComponent = (props: any) => {
-    const [dimensions, setDimensions] = useState({
-        width: props.node.attrs.width || 300,
-        height: props.node.attrs.height || 200,
+    const [dimensions, setDimensions] = useState<{ width: number | null; height: number | null }>({
+        width: props.node.attrs.width || null,
+        height: props.node.attrs.height || null,
     });
     const [isResizing, setIsResizing] = useState(false);
+    const [loaded, setLoaded] = useState(false);
     const imageRef = useRef<HTMLImageElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const currentDimensions = useRef(dimensions);
@@ -140,26 +141,31 @@ const ResizableImageComponent = (props: any) => {
         currentDimensions.current = dimensions;
     }, [dimensions]);
 
-    // Load natural image dimensions on first load
+    // Load natural image dimensions on first load or when dimensions are null
     useEffect(() => {
-        if (imageRef.current && (!props.node.attrs.width || !props.node.attrs.height)) {
-            const img = new window.Image();
-            img.onload = () => {
-                const maxWidth = 600;
-                const imgAspectRatio = img.height / img.width;
+        const img = new window.Image();
+        img.onload = () => {
+            const maxWidth = 600;
+            const imgAspectRatio = img.height / img.width;
+
+            if (!dimensions.width || !dimensions.height) {
                 const width = Math.min(img.width, maxWidth);
                 const height = width * imgAspectRatio;
-
-                if (width !== dimensions.width || height !== dimensions.height) {
-                    setDimensions({ width, height });
-                    setTimeout(() => {
-                        props.updateAttributes({ width, height });
-                    }, 0);
-                }
-            };
-            img.src = props.node.attrs.src;
-        }
-    }, [props.node.attrs.src, props.node.attrs.width, props.node.attrs.height]);
+                setDimensions({ width, height });
+                setTimeout(() => {
+                    props.updateAttributes({ width, height });
+                }, 0);
+            }
+            setLoaded(true);
+        };
+        img.onerror = () => {
+            // Fallback dimensions if image fails to load
+            if (!dimensions.width) setDimensions(d => ({ ...d, width: 300 }));
+            if (!dimensions.height) setDimensions(d => ({ ...d, height: 200 }));
+            setLoaded(true);
+        };
+        img.src = props.node.attrs.src;
+    }, [props.node.attrs.src]);
 
     const handleResizeMouseDown = (e: React.MouseEvent, handle: string) => {
         e.preventDefault();
@@ -168,8 +174,8 @@ const ResizableImageComponent = (props: any) => {
 
         const startX = e.clientX;
         const startY = e.clientY;
-        const startWidth = currentDimensions.current.width;
-        const startHeight = currentDimensions.current.height;
+        const startWidth = currentDimensions.current.width || 300;
+        const startHeight = currentDimensions.current.height || 200;
         const aspectRatio = startHeight / startWidth;
 
         const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -256,11 +262,12 @@ const ResizableImageComponent = (props: any) => {
                     ref={containerRef}
                     className="image-container"
                     style={{
-                        width: `${dimensions.width}px`,
-                        height: `${dimensions.height}px`,
+                        width: dimensions.width ? `${dimensions.width}px` : 'auto',
+                        height: dimensions.height ? `${dimensions.height}px` : 'auto',
                         position: 'relative',
                         display: 'inline-block',
                         margin: '0.5rem 0',
+                        maxWidth: '100%',
                     }}
                 >
                     {/* Drag handle on the image itself */}
@@ -376,29 +383,42 @@ const ResizableImage = Node.create({
                 default: null,
             },
             width: {
-                default: 300,
+                default: null,
                 parseHTML: element => {
-                    // Try inline style first, then attribute
                     const styleWidth = element.style.width;
-                    if (styleWidth) return parseFloat(styleWidth);
+                    if (styleWidth && styleWidth !== 'auto') {
+                        const parsed = parseFloat(styleWidth);
+                        if (!isNaN(parsed) && parsed > 0) return parsed;
+                    }
                     const attrWidth = element.getAttribute('width');
-                    if (attrWidth) return parseFloat(attrWidth);
-                    return 300;
+                    if (attrWidth) {
+                        const parsed = parseFloat(attrWidth);
+                        if (!isNaN(parsed) && parsed > 0) return parsed;
+                    }
+                    return null;
                 },
                 renderHTML: attributes => {
+                    if (!attributes.width) return {};
                     return { width: attributes.width };
                 },
             },
             height: {
-                default: 200,
+                default: null,
                 parseHTML: element => {
                     const styleHeight = element.style.height;
-                    if (styleHeight) return parseFloat(styleHeight);
+                    if (styleHeight && styleHeight !== 'auto') {
+                        const parsed = parseFloat(styleHeight);
+                        if (!isNaN(parsed) && parsed > 0) return parsed;
+                    }
                     const attrHeight = element.getAttribute('height');
-                    if (attrHeight) return parseFloat(attrHeight);
-                    return 200;
+                    if (attrHeight) {
+                        const parsed = parseFloat(attrHeight);
+                        if (!isNaN(parsed) && parsed > 0) return parsed;
+                    }
+                    return null;
                 },
                 renderHTML: attributes => {
+                    if (!attributes.height) return {};
                     return { height: attributes.height };
                 },
             },
@@ -424,12 +444,22 @@ const ResizableImage = Node.create({
 
     renderHTML({ HTMLAttributes }) {
         const { width, height, ...rest } = HTMLAttributes;
-        return ['img', {
-            ...rest,
-            width: width,
-            height: height,
-            style: `width: ${width}px; height: ${height}px;`,
-        }];
+        const styles: string[] = [];
+        const attrs: Record<string, any> = { ...rest };
+        
+        if (width) {
+            attrs.width = width;
+            styles.push(`width: ${width}px`);
+        }
+        if (height) {
+            attrs.height = height;
+            styles.push(`height: ${height}px`);
+        }
+        if (styles.length > 0) {
+            attrs.style = styles.join('; ') + ';';
+        }
+        
+        return ['img', attrs];
     },
 
     addNodeView() {
