@@ -5,7 +5,6 @@ import StarterKit from "@tiptap/starter-kit";
 import BulletList from "@tiptap/extension-bullet-list";
 import OrderedList from "@tiptap/extension-ordered-list";
 import ListItem from "@tiptap/extension-list-item";
-import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
@@ -291,12 +290,30 @@ const ResizableImageComponent = (props: any) => {
                         data-drag-handle
                         draggable={!isResizing}
                         style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'fill',
+                            width: dimensions.width ? '100%' : undefined,
+                            height: dimensions.height ? '100%' : undefined,
+                            maxWidth: '100%',
+                            objectFit: dimensions.width && dimensions.height ? 'fill' : 'contain',
                             borderRadius: '0.5rem',
                             cursor: isResizing ? 'default' : 'grab',
                             pointerEvents: 'auto',
+                            display: 'block',
+                        }}
+                        onLoad={(e) => {
+                            // If dimensions are still null after mount, get them from the rendered image
+                            if (!dimensions.width || !dimensions.height) {
+                                const imgEl = e.currentTarget;
+                                const naturalW = imgEl.naturalWidth;
+                                const naturalH = imgEl.naturalHeight;
+                                const maxW = 600;
+                                const ratio = naturalH / naturalW;
+                                const w = Math.min(naturalW, maxW);
+                                const h = w * ratio;
+                                setDimensions({ width: w, height: h });
+                                setTimeout(() => {
+                                    props.updateAttributes({ width: w, height: h });
+                                }, 0);
+                            }
                         }}
                     />
 
@@ -386,12 +403,25 @@ const ResizableImage = Node.create({
     group: 'inline',
     inline: true,
     draggable: true,
-    isolating: false,
+    atom: true,
 
     addAttributes() {
         return {
-            class: {
-                default: 'text-box',
+            src: {
+                default: null,
+                parseHTML: element => element.getAttribute('src'),
+                renderHTML: attributes => {
+                    if (!attributes.src) return {};
+                    return { src: attributes.src };
+                },
+            },
+            alt: {
+                default: null,
+                parseHTML: element => element.getAttribute('alt'),
+                renderHTML: attributes => {
+                    if (!attributes.alt) return {};
+                    return { alt: attributes.alt };
+                },
             },
             width: {
                 default: null,
@@ -448,7 +478,7 @@ const ResizableImage = Node.create({
     parseHTML() {
         return [
             {
-                tag: 'div.text-box',
+                tag: 'img[src]',
             },
         ];
     },
@@ -474,39 +504,7 @@ const ResizableImage = Node.create({
     },
 
     addNodeView() {
-        return ReactNodeViewRenderer(ResizableTextBoxComponent);
-    },
-
-    addCommands() {
-        return {
-            setTextBox:
-                () =>
-                ({ commands }) => {
-                    return commands.wrapIn(this.name);
-                },
-            toggleTextBox:
-                () =>
-                ({ commands, state, chain }) => {
-                    const { $from } = state.selection;
-                    
-                    // Check if cursor is inside a text box
-                    let isInTextBox = false;
-                    for (let d = $from.depth; d > 0; d--) {
-                        if ($from.node(d).type.name === this.name) {
-                            isInTextBox = true;
-                            break;
-                        }
-                    }
-                    
-                    if (isInTextBox) {
-                        // Remove the text box, keeping the content
-                        return chain().lift(this.name).run();
-                    } else {
-                        // Wrap selection in a text box
-                        return chain().wrapIn(this.name).run();
-                    }
-                },
-        };
+        return ReactNodeViewRenderer(ResizableImageComponent);
     },
 });
 
@@ -1092,21 +1090,12 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     // Update editor content when value prop changes (e.g., when editing a blog)
     useEffect(() => {
         if (editor && value !== editor.getHTML()) {
-            queueMicrotask(() => {
-                editor.commands.setContent(value);
-            });
-        }
-    }, [value, editor]);
-
-    // Update editor content when value prop changes (for editing existing blogs)
-    useEffect(() => {
-        if (editor && value !== editor.getHTML()) {
             // Defer to avoid flushSync warning in React 19
             queueMicrotask(() => {
                 editor.commands.setContent(value);
             });
         }
-    }, [editor, value]);
+    }, [value, editor]);
 
     const addImage = useCallback(async () => {
         const input = document.createElement("input");
