@@ -304,8 +304,22 @@ body {
     position: relative;
   }
 
+  /* Borderless Text Box - no border, no background, no padding */
+  .prose-invert .text-box-borderless,
+  .text-box-borderless {
+    display: block;
+    position: relative;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
   .prose-invert .text-box p:last-child,
-  .text-box p:last-child {
+  .text-box p:last-child,
+  .prose-invert .text-box-borderless p:last-child,
+  .text-box-borderless p:last-child {
     @apply mb-0;
   }
 

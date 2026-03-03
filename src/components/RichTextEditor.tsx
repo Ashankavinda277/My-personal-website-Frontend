@@ -12,6 +12,7 @@ import Underline from "@tiptap/extension-underline";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import { Extension, Node } from "@tiptap/core";
+import { NodeSelection } from "prosemirror-state";
 import {
     Bold,
     Italic,
@@ -490,6 +491,7 @@ const ResizableTextBoxComponent = (props: any) => {
         x: props.node.attrs.x || 0,
         y: props.node.attrs.y || 0,
     });
+    const isBorderless = props.node.attrs.borderless || false;
     const [isDragging, setIsDragging] = useState(false);
     const currentDimensions = useRef(dimensions);
     const currentPosition = useRef(position);
@@ -593,11 +595,43 @@ const ResizableTextBoxComponent = (props: any) => {
         document.addEventListener('mouseup', handleMouseUp);
     };
 
+    // Handle click to select the text box
+    const handleSelectTextBox = (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        // Select if clicking on the border area or container, not the inner content
+        if (target.classList.contains('text-box-content') || 
+            target.classList.contains('textbox-container')) {
+            // Check if clicking on border/padding area (not on the actual editable content)
+            const contentDiv = target.classList.contains('text-box-content') ? target : target.querySelector('.text-box-content');
+            if (contentDiv) {
+                const rect = contentDiv.getBoundingClientRect();
+                const padding = 16; // 1rem = 16px
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+                
+                // If clicking in the padding/border area (not in the inner content area)
+                if (clickX < padding || clickX > rect.width - padding || 
+                    clickY < padding || clickY > rect.height - padding) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Select the entire text box node
+                    const { view, getPos } = props;
+                    const pos = getPos();
+                    if (pos !== undefined) {
+                        const nodeSelection = NodeSelection.create(view.state.doc, pos);
+                        view.dispatch(view.state.tr.setSelection(nodeSelection));
+                    }
+                }
+            }
+        }
+    };
+
     return (
         <NodeViewWrapper className="resizable-textbox-wrapper">
             <div 
                 ref={containerRef}
                 className="textbox-container" 
+                onClick={handleSelectTextBox}
                 style={{ 
                     width: `${dimensions.width}px`,
                     minHeight: `${dimensions.height}px`,
@@ -607,8 +641,8 @@ const ResizableTextBoxComponent = (props: any) => {
                     margin: '1rem 0',
                 }}
             >
-                {/* Drag Handle - Only visible when selected */}
-                {props.selected && (
+                {/* Drag Handle - Only visible when selected and not borderless */}
+                {props.selected && !isBorderless && (
                     <>
                         <div
                             className="drag-handle"
@@ -636,29 +670,23 @@ const ResizableTextBoxComponent = (props: any) => {
                             ⠿
                         </div>
                         
-                        {/* Remove Text Box Button */}
+                        {/* Remove Text Box Border Button */}
                         <button
                             type="button"
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                // Lift the content out of the text box
-                                const { view, state } = props.editor;
-                                const { $from } = state.selection;
                                 
-                                // Find the text box node
-                                for (let d = $from.depth; d > 0; d--) {
-                                    if ($from.node(d).type.name === 'textBox') {
-                                        props.editor.chain().focus().lift('textBox').run();
-                                        break;
-                                    }
-                                }
+                                // Toggle borderless mode instead of deleting
+                                props.updateAttributes({
+                                    borderless: true,
+                                });
                             }}
                             style={{
                                 position: 'absolute',
                                 top: '-20px',
                                 right: '0',
-                                width: '60px',
+                                width: '80px',
                                 height: '20px',
                                 backgroundColor: 'rgb(239, 68, 68)',
                                 borderRadius: '4px 4px 0 0',
@@ -679,29 +707,38 @@ const ResizableTextBoxComponent = (props: any) => {
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.backgroundColor = 'rgb(239, 68, 68)';
                             }}
-                            title="Remove text box (keep content)"
+                            title="Remove text box border (keep content and position)"
                         >
-                            ✕ Remove
+                            ✕ Remove Box
                         </button>
                     </>
                 )}
                 
                 <div 
                     className="text-box-content"
+                    onClick={handleSelectTextBox}
                     style={{
                         width: '100%',
                         minHeight: '100%',
-                        padding: '1rem',
-                        border: '2px solid rgba(168, 85, 247, 0.5)',
-                        borderRadius: '0.5rem',
-                        backgroundColor: 'rgba(24, 24, 27, 0.3)',
+                        padding: isBorderless ? '0' : '1rem',
+                        border: isBorderless 
+                            ? 'none' 
+                            : (props.selected 
+                                ? '2px solid rgba(168, 85, 247, 0.9)' 
+                                : '2px solid rgba(168, 85, 247, 0.5)'),
+                        borderRadius: isBorderless ? '0' : '0.5rem',
+                        backgroundColor: isBorderless ? 'transparent' : 'rgba(24, 24, 27, 0.3)',
                         cursor: 'text',
+                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                        boxShadow: (props.selected && !isBorderless) 
+                            ? '0 0 0 1px rgba(168, 85, 247, 0.3)' 
+                            : 'none',
                     }}
                 >
                     <NodeViewContent className="text-box-inner-content" />
                 </div>
                 
-                {props.selected && (
+                {props.selected && !isBorderless && (
                     <>
                         {/* Corner resize handles */}
                         <div
@@ -894,6 +931,15 @@ const TextBox = Node.create({
                     };
                 },
             },
+            borderless: {
+                default: false,
+                parseHTML: element => element.getAttribute('data-borderless') === 'true',
+                renderHTML: attributes => {
+                    return {
+                        'data-borderless': attributes.borderless,
+                    };
+                },
+            },
         };
     },
 
@@ -902,14 +948,20 @@ const TextBox = Node.create({
             {
                 tag: 'div.text-box',
             },
+            {
+                tag: 'div.text-box-borderless',
+            },
         ];
     },
 
     renderHTML({ HTMLAttributes }) {
+        const isBorderless = HTMLAttributes['data-borderless'] === 'true' || HTMLAttributes['data-borderless'] === true;
+        const baseStyles = `width: ${HTMLAttributes['data-width'] || 400}px; min-height: ${HTMLAttributes['data-height'] || 200}px; position: relative; left: ${HTMLAttributes['data-x'] || 0}px; top: ${HTMLAttributes['data-y'] || 0}px;`;
+        
         return ['div', { 
             ...HTMLAttributes, 
-            class: 'text-box',
-            style: `width: ${HTMLAttributes['data-width'] || 400}px; min-height: ${HTMLAttributes['data-height'] || 200}px; position: relative; left: ${HTMLAttributes['data-x'] || 0}px; top: ${HTMLAttributes['data-y'] || 0}px;`
+            class: isBorderless ? 'text-box-borderless' : 'text-box',
+            style: baseStyles
         }, 0];
     },
 
