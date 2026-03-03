@@ -124,8 +124,7 @@ export default function BlogList() {
                           <div className="flex items-center gap-3 md:gap-4 text-xs text-gray-500">
                             <div className="flex items-center gap-1">
                               <Calendar size={14} />
-                              <span className="hidden sm:inline">{formatDate(b.created_at)}</span>
-                              <span className="sm:hidden">Today</span>
+                              <span>{formatDate(b.created_at)}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Clock size={14} />
