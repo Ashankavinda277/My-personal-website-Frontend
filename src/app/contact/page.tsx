@@ -84,9 +84,7 @@ export default function ContactPage() {
                                     <span className="font-medium text-gray-300 group-hover:text-white">Facebook</span>
                                 </Link>
                                 <Link 
-                                    href="https://mail.google.com/mail/?view=cm&fs=1&to=concepts.update@gmail.com"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    href="mailto:concepts.update@gmail.com"
                                     className="p-4 glass-card flex items-center gap-3 hover:bg-white/10 transition-colors group cursor-pointer"
                                 >
                                     <Mail className="text-pink-400 group-hover:text-pink-300 transition-colors" />
