@@ -89,7 +89,7 @@ export default function BlogPost() {
 
             {/* Hero Image */}
             <div className="container mx-auto max-w-4xl px-6 mb-12">
-                <div className="relative h-[40vh] md:h-[60vh] w-full overflow-hidden rounded-2xl md:rounded-3xl border border-white/10 shadow-2xl">
+                <div className="relative aspect-video w-full overflow-hidden rounded-2xl md:rounded-3xl border border-white/10 shadow-2xl">
                     {blog.cover_image ? (
                         <img
                             src={blog.cover_image?.startsWith('http') ? blog.cover_image : `${backendBase}${blog.cover_image}`}
