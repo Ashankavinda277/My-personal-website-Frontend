@@ -399,7 +399,8 @@ const ResizableImageComponent = (props: any) => {
 // Custom Image extension with resizing support
 const ResizableImage = Node.create({
     name: 'image',
-    group: 'block',
+    group: 'inline',
+    inline: true,
     draggable: true,
 
     addAttributes() {
