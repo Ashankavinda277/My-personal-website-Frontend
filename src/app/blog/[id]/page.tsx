@@ -76,7 +76,7 @@ export default function BlogPost() {
                 const elementsToSkip = Math.round(Math.abs(y) / 100);
                 let target: Element | null = el;
                 for (let i = 0; i < elementsToSkip; i++) {
-                    const prev = target?.previousElementSibling;
+                    const prev: Element | null | undefined = target?.previousElementSibling;
                     if (!prev) break;
                     target = prev;
                 }
@@ -88,7 +88,7 @@ export default function BlogPost() {
                 const elementsToSkip = Math.round(y / 100);
                 let target: Element | null = el;
                 for (let i = 0; i < elementsToSkip; i++) {
-                    const next = target?.nextElementSibling;
+                    const next: Element | null | undefined = target?.nextElementSibling;
                     if (!next) break;
                     target = next;
                 }
