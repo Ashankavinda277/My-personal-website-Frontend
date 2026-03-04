@@ -11,6 +11,7 @@ import Underline from "@tiptap/extension-underline";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import { Extension, Node } from "@tiptap/core";
+import { NodeSelection } from "prosemirror-state";
 import {
     Bold,
     Italic,
@@ -512,12 +513,14 @@ const ResizableImage = Node.create({
 const ResizableTextBoxComponent = (props: any) => {
     const [dimensions, setDimensions] = useState({
         width: props.node.attrs.width || 400,
-        height: props.node.attrs.height || 200,
+        height: props.node.attrs.height || 'auto',
     });
     const [position, setPosition] = useState({
         x: props.node.attrs.x || 0,
         y: props.node.attrs.y || 0,
     });
+    const isBorderless = props.node.attrs.borderless || false;
+    const hasMoved = (position.x !== 0 || position.y !== 0);
     const [isDragging, setIsDragging] = useState(false);
     const currentDimensions = useRef(dimensions);
     const currentPosition = useRef(position);
@@ -597,6 +600,27 @@ const ResizableTextBoxComponent = (props: any) => {
         const startPosX = position.x;
         const startPosY = position.y;
 
+        // Find the scrollable editor content container
+        const scrollContainer = containerRef.current?.closest('.overflow-y-auto') as HTMLElement | null;
+        let scrollAnimId: number | null = null;
+
+        const autoScroll = (clientY: number) => {
+            if (!scrollContainer) return;
+            const rect = scrollContainer.getBoundingClientRect();
+            const edgeZone = 60; // px from edge to start scrolling
+            const maxSpeed = 15; // px per frame
+
+            if (clientY < rect.top + edgeZone) {
+                // Near top edge — scroll up
+                const intensity = 1 - (clientY - rect.top) / edgeZone;
+                scrollContainer.scrollTop -= Math.max(1, maxSpeed * Math.min(1, intensity));
+            } else if (clientY > rect.bottom - edgeZone) {
+                // Near bottom edge — scroll down
+                const intensity = 1 - (rect.bottom - clientY) / edgeZone;
+                scrollContainer.scrollTop += Math.max(1, maxSpeed * Math.min(1, intensity));
+            }
+        };
+
         const handleMouseMove = (moveEvent: MouseEvent) => {
             const dx = moveEvent.clientX - startX;
             const dy = moveEvent.clientY - startY;
@@ -605,10 +629,22 @@ const ResizableTextBoxComponent = (props: any) => {
                 x: startPosX + dx,
                 y: startPosY + dy,
             });
+
+            // Auto-scroll when dragging near edges
+            autoScroll(moveEvent.clientY);
+
+            // Keep scrolling while mouse stays near edge
+            if (scrollAnimId) cancelAnimationFrame(scrollAnimId);
+            const loop = () => {
+                autoScroll(moveEvent.clientY);
+                scrollAnimId = requestAnimationFrame(loop);
+            };
+            scrollAnimId = requestAnimationFrame(loop);
         };
 
         const handleMouseUp = () => {
             setIsDragging(false);
+            if (scrollAnimId) cancelAnimationFrame(scrollAnimId);
             props.updateAttributes({
                 x: currentPosition.current.x,
                 y: currentPosition.current.y,
@@ -621,22 +657,58 @@ const ResizableTextBoxComponent = (props: any) => {
         document.addEventListener('mouseup', handleMouseUp);
     };
 
+    // Handle click to select the text box
+    const handleSelectTextBox = (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        // Select if clicking on the border area or container, not the inner content
+        if (target.classList.contains('text-box-content') || 
+            target.classList.contains('textbox-container')) {
+            // Check if clicking on border/padding area (not on the actual editable content)
+            const contentDiv = target.classList.contains('text-box-content') ? target : target.querySelector('.text-box-content');
+            if (contentDiv) {
+                const rect = contentDiv.getBoundingClientRect();
+                const padding = 16; // 1rem = 16px
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+                
+                // If clicking in the padding/border area (not in the inner content area)
+                if (clickX < padding || clickX > rect.width - padding || 
+                    clickY < padding || clickY > rect.height - padding) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Select the entire text box node
+                    const { view, getPos } = props;
+                    const pos = getPos();
+                    if (pos !== undefined) {
+                        const nodeSelection = NodeSelection.create(view.state.doc, pos);
+                        view.dispatch(view.state.tr.setSelection(nodeSelection));
+                    }
+                }
+            }
+        }
+    };
+
     return (
-        <NodeViewWrapper className="resizable-textbox-wrapper">
+        <NodeViewWrapper className="resizable-textbox-wrapper" style={{
+            position: 'relative',
+            ...(hasMoved ? { height: 0, overflow: 'visible' } : {}),
+        }}>
             <div 
                 ref={containerRef}
                 className="textbox-container" 
+                onClick={handleSelectTextBox}
                 style={{ 
                     width: `${dimensions.width}px`,
-                    minHeight: `${dimensions.height}px`,
-                    position: 'relative',
+                    ...(dimensions.height !== 'auto' ? { minHeight: `${dimensions.height}px` } : {}),
+                    position: hasMoved ? 'absolute' : 'relative',
                     left: `${position.x}px`,
                     top: `${position.y}px`,
-                    margin: '1rem 0',
+                    zIndex: hasMoved ? 10 : 'auto',
+                    margin: hasMoved ? 0 : '0.5rem 0',
                 }}
             >
-                {/* Drag Handle - Only visible when selected */}
-                {props.selected && (
+                {/* Drag Handle - Only visible when selected and not borderless */}
+                {props.selected && !isBorderless && (
                     <>
                         <div
                             className="drag-handle"
@@ -664,29 +736,23 @@ const ResizableTextBoxComponent = (props: any) => {
                             ⠿
                         </div>
                         
-                        {/* Remove Text Box Button */}
+                        {/* Remove Text Box Border Button */}
                         <button
                             type="button"
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                // Lift the content out of the text box
-                                const { view, state } = props.editor;
-                                const { $from } = state.selection;
                                 
-                                // Find the text box node
-                                for (let d = $from.depth; d > 0; d--) {
-                                    if ($from.node(d).type.name === 'textBox') {
-                                        props.editor.chain().focus().lift('textBox').run();
-                                        break;
-                                    }
-                                }
+                                // Toggle borderless mode instead of deleting
+                                props.updateAttributes({
+                                    borderless: true,
+                                });
                             }}
                             style={{
                                 position: 'absolute',
                                 top: '-20px',
                                 right: '0',
-                                width: '60px',
+                                width: '80px',
                                 height: '20px',
                                 backgroundColor: 'rgb(239, 68, 68)',
                                 borderRadius: '4px 4px 0 0',
@@ -707,29 +773,38 @@ const ResizableTextBoxComponent = (props: any) => {
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.backgroundColor = 'rgb(239, 68, 68)';
                             }}
-                            title="Remove text box (keep content)"
+                            title="Remove text box border (keep content and position)"
                         >
-                            ✕ Remove
+                            ✕ Remove Box
                         </button>
                     </>
                 )}
                 
                 <div 
                     className="text-box-content"
+                    onClick={handleSelectTextBox}
                     style={{
                         width: '100%',
                         minHeight: '100%',
-                        padding: '1rem',
-                        border: '2px solid rgba(168, 85, 247, 0.5)',
-                        borderRadius: '0.5rem',
-                        backgroundColor: 'rgba(24, 24, 27, 0.3)',
+                        padding: isBorderless ? '0' : '1rem',
+                        border: isBorderless 
+                            ? 'none' 
+                            : (props.selected 
+                                ? '2px solid rgba(168, 85, 247, 0.9)' 
+                                : '2px solid rgba(168, 85, 247, 0.5)'),
+                        borderRadius: isBorderless ? '0' : '0.5rem',
+                        backgroundColor: isBorderless ? 'transparent' : 'rgba(24, 24, 27, 0.3)',
                         cursor: 'text',
+                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                        boxShadow: (props.selected && !isBorderless) 
+                            ? '0 0 0 1px rgba(168, 85, 247, 0.3)' 
+                            : 'none',
                     }}
                 >
                     <NodeViewContent className="text-box-inner-content" />
                 </div>
                 
-                {props.selected && (
+                {props.selected && !isBorderless && (
                     <>
                         {/* Corner resize handles */}
                         <div
@@ -896,8 +971,8 @@ const TextBox = Node.create({
                 },
             },
             height: {
-                default: 200,
-                parseHTML: element => element.getAttribute('data-height'),
+                default: 'auto',
+                parseHTML: element => element.getAttribute('data-height') || 'auto',
                 renderHTML: attributes => {
                     return {
                         'data-height': attributes.height,
@@ -922,6 +997,15 @@ const TextBox = Node.create({
                     };
                 },
             },
+            borderless: {
+                default: false,
+                parseHTML: element => element.getAttribute('data-borderless') === 'true',
+                renderHTML: attributes => {
+                    return {
+                        'data-borderless': attributes.borderless,
+                    };
+                },
+            },
         };
     },
 
@@ -930,14 +1014,37 @@ const TextBox = Node.create({
             {
                 tag: 'div.text-box',
             },
+            {
+                tag: 'div.text-box-borderless',
+            },
         ];
     },
 
     renderHTML({ HTMLAttributes }) {
+        const isBorderless = HTMLAttributes['data-borderless'] === 'true' || HTMLAttributes['data-borderless'] === true;
+        const heightVal = HTMLAttributes['data-height'];
+        const heightStyle = (heightVal && heightVal !== 'auto') ? `min-height: ${heightVal}px;` : '';
+        const width = HTMLAttributes['data-width'] || 400;
+        const x = parseInt(HTMLAttributes['data-x']) || 0;
+        
+        const boxClass = isBorderless ? 'text-box-borderless' : 'text-box';
+        
+        // Use CSS float for text wrapping (like Microsoft Word).
+        // If dragged right (x > 0) → float right, if left (x < 0) → float left.
+        // This works naturally in any layout without pixel-perfect positioning.
+        let floatStyle = '';
+        if (x > 0) {
+            floatStyle = 'float: right; margin-left: 1.5rem; margin-bottom: 1rem;';
+        } else if (x < 0) {
+            floatStyle = 'float: left; margin-right: 1.5rem; margin-bottom: 1rem;';
+        }
+        
+        const boxStyle = `width: ${width}px; ${heightStyle} ${floatStyle}`;
+        
         return ['div', { 
             ...HTMLAttributes, 
-            class: 'text-box',
-            style: `width: ${HTMLAttributes['data-width'] || 400}px; min-height: ${HTMLAttributes['data-height'] || 200}px; position: relative; left: ${HTMLAttributes['data-x'] || 0}px; top: ${HTMLAttributes['data-y'] || 0}px;`
+            class: boxClass,
+            style: boxStyle
         }, 0];
     },
 
@@ -1083,6 +1190,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         editorProps: {
             attributes: {
                 class: "prose prose-invert max-w-none focus:outline-none min-h-[300px] px-4 py-3",
+                style: "position: relative;",
             },
         },
     });
@@ -1222,9 +1330,9 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
     }
 
     return (
-        <div className="border border-white/10 rounded-lg bg-black/20 overflow-hidden">
-            {/* Toolbar */}
-            <div className="flex flex-wrap gap-1 p-2 border-b border-white/10 bg-white/5">
+        <div className="border border-white/10 rounded-lg bg-black/20 flex flex-col" style={{ maxHeight: '80vh' }}>
+            {/* Toolbar - fixed at top, never scrolls */}
+            <div className="flex flex-wrap gap-1 p-2 border-b border-white/10 bg-zinc-900/95 rounded-t-lg flex-shrink-0 z-10">
                 {/* Text Formatting */}
                 <button
                     type="button"
@@ -1584,8 +1692,10 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                 </button>
             </div>
 
-            {/* Editor Content */}
-            <EditorContent editor={editor} placeholder={placeholder} />
+            {/* Editor Content - scrollable */}
+            <div className="overflow-y-auto flex-1 min-h-0">
+                <EditorContent editor={editor} placeholder={placeholder} />
+            </div>
         </div>
     );
 }

@@ -298,20 +298,56 @@ body {
   /* Text Box Styling */
   .prose-invert .text-box,
   .text-box {
-    @apply border-2 border-purple-500/50 rounded-lg p-4 my-4 bg-zinc-900/30;
+    @apply border-2 border-purple-500/50 rounded-lg p-4 my-2 bg-zinc-900/30;
     display: block;
-    position: relative;
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  /* Borderless Text Box - no border, no background, no padding */
+  .prose-invert .text-box-borderless,
+  .text-box-borderless {
+    display: block;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  /* On mobile screens, disable float and make text boxes full width */
+  @media (max-width: 768px) {
+    .prose-invert .text-box,
+    .text-box,
+    .prose-invert .text-box-borderless,
+    .text-box-borderless {
+      float: none !important;
+      width: 100% !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+    }
   }
 
   .prose-invert .text-box p:last-child,
-  .text-box p:last-child {
+  .text-box p:last-child,
+  .prose-invert .text-box-borderless p:last-child,
+  .text-box-borderless p:last-child {
     @apply mb-0;
+  }
+
+  /* Clear floats after text boxes (Word-like text wrapping) */
+  .prose-invert .text-box + *,
+  .prose-invert .text-box-borderless + * {
+    /* Allow content to flow around the floated text box */
   }
 
   /* Resizable TextBox - Word-like drag resize */
   .prose-invert .resizable-textbox-wrapper {
     display: block;
-    margin: 1rem 0;
+    margin: 0.25rem 0;
+    position: relative;
   }
 
   .prose-invert .textbox-container {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import api from "../../../utils/api";
 import { motion } from "framer-motion";
@@ -37,6 +37,97 @@ export default function BlogPost() {
             });
     }, [id]);
 
+    // Pre-process blog HTML: move text boxes to the correct DOM position and apply float.
+    // In the editor, dragging only changes visual CSS offset (data-x, data-y) — the node
+    // stays at its original document position. So a text box created near the end but
+    // dragged up to appear beside the features list is still at the bottom of the HTML.
+    // We fix this by moving it up in the DOM by the right number of siblings, then floating it.
+    const processedContent = useMemo(() => {
+        if (!blog?.content) return '';
+        if (typeof window === 'undefined') return blog.content;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(`<div>${blog.content}</div>`, 'text/html');
+        const container = doc.body.firstElementChild;
+        if (!container) return blog.content;
+
+        const textBoxes = container.querySelectorAll('.text-box[data-x], .text-box-borderless[data-x]');
+        textBoxes.forEach((textBox) => {
+            const el = textBox as HTMLElement;
+            const x = parseInt(el.getAttribute('data-x') || '0');
+            const y = parseInt(el.getAttribute('data-y') || '0');
+            if (x === 0 && y === 0) return;
+
+            // Apply float based on horizontal drag direction
+            if (x > 0) {
+                el.style.cssFloat = 'right';
+                el.style.marginLeft = '1.5rem';
+                el.style.marginBottom = '1rem';
+            } else if (x < 0) {
+                el.style.cssFloat = 'left';
+                el.style.marginRight = '1.5rem';
+                el.style.marginBottom = '1rem';
+            }
+
+            // Move the text box up/down in the DOM based on y-offset.
+            // Each block sibling is roughly 80-120px in the editor.
+            // We use ~100px as the average to calculate how many siblings to skip.
+            if (y < 0) {
+                const elementsToSkip = Math.round(Math.abs(y) / 100);
+                let target: Element | null = el;
+                for (let i = 0; i < elementsToSkip; i++) {
+                    const prev: Element | null | undefined = target?.previousElementSibling;
+                    if (!prev) break;
+                    target = prev;
+                }
+                // Move the text box before the target element
+                if (target && target !== el) {
+                    container.insertBefore(el, target);
+                }
+            } else if (y > 0) {
+                const elementsToSkip = Math.round(y / 100);
+                let target: Element | null = el;
+                for (let i = 0; i < elementsToSkip; i++) {
+                    const next: Element | null | undefined = target?.nextElementSibling;
+                    if (!next) break;
+                    target = next;
+                }
+                // Move the text box after the target element
+                if (target && target !== el && target.nextSibling) {
+                    container.insertBefore(el, target.nextSibling);
+                } else if (target && target !== el) {
+                    container.appendChild(el);
+                }
+            }
+
+            // Add a clearfix after the text box to prevent float from affecting unrelated content
+            const clearDiv = doc.createElement('div');
+            clearDiv.style.clear = 'both';
+            clearDiv.setAttribute('data-clearfix', 'true');
+            // Find the next non-textbox, non-clearfix sibling that should be the boundary
+            let boundary = el.nextElementSibling;
+            // Skip a few siblings to allow text to wrap around the float
+            let wrapCount = Math.max(1, Math.round(Math.abs(y) / 200));
+            while (boundary && wrapCount > 0) {
+                if (!boundary.classList.contains('text-box') && 
+                    !boundary.classList.contains('text-box-borderless') &&
+                    !boundary.hasAttribute('data-clearfix')) {
+                    wrapCount--;
+                }
+                if (wrapCount > 0) boundary = boundary.nextElementSibling;
+            }
+            if (boundary) {
+                container.insertBefore(clearDiv, boundary);
+            } else {
+                container.appendChild(clearDiv);
+            }
+        });
+
+        return container.innerHTML;
+    }, [blog?.content]);
+
+    const backendBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+
     if (loading) {
         return (
             <div className="min-h-screen bg-black flex items-center justify-center text-white">
@@ -53,8 +144,6 @@ export default function BlogPost() {
             </div>
         );
     }
-
-    const backendBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
 
     return (
         <article className="min-h-screen bg-black text-gray-200 pb-20 pt-20">
@@ -119,7 +208,7 @@ export default function BlogPost() {
                         className="prose prose-invert prose-lg md:prose-xl max-w-none text-gray-300 leading-relaxed
                                    prose-headings:text-white prose-a:text-purple-400 hover:prose-a:text-purple-300
                                    prose-img:rounded-xl prose-img:border prose-img:border-white/10"
-                        dangerouslySetInnerHTML={{ __html: blog.content }}
+                        dangerouslySetInnerHTML={{ __html: processedContent }}
                     />
                 </motion.div>
             </div>
