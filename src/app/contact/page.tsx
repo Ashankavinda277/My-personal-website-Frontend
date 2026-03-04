@@ -83,13 +83,13 @@ export default function ContactPage() {
                                     <Facebook className="text-blue-500 group-hover:text-blue-400 transition-colors" />
                                     <span className="font-medium text-gray-300 group-hover:text-white">Facebook</span>
                                 </Link>
-                                <Link 
+                                <a 
                                     href="mailto:concepts.update@gmail.com"
                                     className="p-4 glass-card flex items-center gap-3 hover:bg-white/10 transition-colors group cursor-pointer"
                                 >
                                     <Mail className="text-pink-400 group-hover:text-pink-300 transition-colors" />
                                     <span className="font-medium text-gray-300 group-hover:text-white">Email</span>
-                                </Link>
+                                </a>
                             </div>
                         </motion.div>
 
