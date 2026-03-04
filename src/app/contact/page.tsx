@@ -19,16 +19,7 @@ export default function ContactPage() {
     const [emailCopied, setEmailCopied] = useState(false);
 
     const handleEmailClick = () => {
-        const email = "concepts.update@gmail.com";
-        
-        // Try opening mailto, but also copy to clipboard as fallback
-        navigator.clipboard.writeText(email).then(() => {
-            setEmailCopied(true);
-            setTimeout(() => setEmailCopied(false), 2000);
-        });
-        
-        // Also try mailto
-        window.location.href = `mailto:${email}`;
+        window.open("https://mail.google.com/mail/?view=cm&to=concepts.update@gmail.com", "_blank");
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
