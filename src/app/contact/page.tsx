@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Facebook, Send, User, AtSign, FileText, MessageSquare } from "lucide-react";
+import { Mail, Facebook, Send, User, AtSign, FileText, MessageSquare, Copy, Check } from "lucide-react";
 import Link from "next/link";
 import api from "@/utils/api";
 
@@ -16,6 +16,20 @@ export default function ContactPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
     const [errorMessage, setErrorMessage] = useState("");
+    const [emailCopied, setEmailCopied] = useState(false);
+
+    const handleEmailClick = () => {
+        const email = "concepts.update@gmail.com";
+        
+        // Try opening mailto, but also copy to clipboard as fallback
+        navigator.clipboard.writeText(email).then(() => {
+            setEmailCopied(true);
+            setTimeout(() => setEmailCopied(false), 2000);
+        });
+        
+        // Also try mailto
+        window.location.href = `mailto:${email}`;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -83,13 +97,19 @@ export default function ContactPage() {
                                     <Facebook className="text-blue-500 group-hover:text-blue-400 transition-colors" />
                                     <span className="font-medium text-gray-300 group-hover:text-white">Facebook</span>
                                 </Link>
-                                <a 
-                                    href="mailto:concepts.update@gmail.com"
-                                    className="p-4 glass-card flex items-center gap-3 hover:bg-white/10 transition-colors group cursor-pointer"
+                                <button 
+                                    onClick={handleEmailClick}
+                                    className="p-4 glass-card flex items-center gap-3 hover:bg-white/10 transition-colors group cursor-pointer relative"
                                 >
-                                    <Mail className="text-pink-400 group-hover:text-pink-300 transition-colors" />
-                                    <span className="font-medium text-gray-300 group-hover:text-white">Email</span>
-                                </a>
+                                    {emailCopied ? (
+                                        <Check className="text-green-400 transition-colors" />
+                                    ) : (
+                                        <Mail className="text-pink-400 group-hover:text-pink-300 transition-colors" />
+                                    )}
+                                    <span className="font-medium text-gray-300 group-hover:text-white">
+                                        {emailCopied ? "Copied!" : "Email"}
+                                    </span>
+                                </button>
                             </div>
                         </motion.div>
 
