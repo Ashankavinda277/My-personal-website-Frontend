@@ -19,7 +19,12 @@ export default function ContactPage() {
     const [emailCopied, setEmailCopied] = useState(false);
 
     const handleEmailClick = () => {
-        window.open("https://mail.google.com/mail/?view=cm&to=concepts.update@gmail.com", "_blank");
+        const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+            window.location.href = "mailto:concepts.update@gmail.com";
+        } else {
+            window.open("https://mail.google.com/mail/?view=cm&to=concepts.update@gmail.com", "_blank");
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
