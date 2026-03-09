@@ -301,6 +301,54 @@ body {
     @apply border-l-4 border-purple-500 pl-4 italic text-gray-400 my-4;
   }
 
+  /* Light theme prose (for blog reading page) */
+  .prose:not(.prose-invert) p {
+    color: #111111 !important;
+  }
+
+  .prose:not(.prose-invert) li {
+    color: #111111 !important;
+  }
+
+  .prose:not(.prose-invert) ul,
+  .prose:not(.prose-invert) ol {
+    color: #111111 !important;
+  }
+
+  .prose:not(.prose-invert) h1,
+  .prose:not(.prose-invert) h2,
+  .prose:not(.prose-invert) h3,
+  .prose:not(.prose-invert) h4 {
+    color: #000000 !important;
+  }
+
+  .prose:not(.prose-invert) blockquote {
+    @apply border-l-4 border-purple-400 pl-4 italic my-4;
+    color: #222222 !important;
+  }
+
+  .prose:not(.prose-invert) code {
+    @apply bg-purple-50 px-1.5 py-0.5 rounded text-purple-700 text-sm;
+  }
+
+  .prose:not(.prose-invert) pre {
+    @apply bg-gray-900 p-4 rounded-lg overflow-x-auto mb-4 text-gray-100;
+  }
+
+  .prose:not(.prose-invert) pre code {
+    @apply bg-transparent px-0 py-0 text-gray-100;
+  }
+
+  .prose:not(.prose-invert) ul:not([class*="list-"]) {
+    list-style-type: disc;
+    padding-left: 2.5em;
+  }
+
+  .prose:not(.prose-invert) ol:not([class*="list-"]) {
+    list-style-type: decimal;
+    padding-left: 2.5em;
+  }
+
   /* Text Box Styling */
   .prose-invert .text-box,
   .text-box {
