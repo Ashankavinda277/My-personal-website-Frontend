@@ -255,6 +255,12 @@ body {
     @apply text-gray-300 mb-3;
   }
 
+  /* Preserve empty paragraphs (blank lines from pressing Enter twice) */
+  .prose-invert p:empty,
+  .prose p:empty {
+    min-height: 1.5em;
+  }
+
   .prose-invert ul,
   .prose-invert ol {
     @apply text-gray-300 mb-3;
@@ -471,6 +477,16 @@ body {
   ul.list-2col {
     columns: 2 !important;
     column-gap: 2rem;
+  }
+
+  /* On mobile, collapse 2-column lists to single column */
+  @media (max-width: 768px) {
+    .prose-invert ul[data-columns="2"],
+    ul[data-columns="2"],
+    .prose-invert ul.list-2col,
+    ul.list-2col {
+      columns: 1 !important;
+    }
   }
 
   .prose-invert ul[data-columns="2"] li,

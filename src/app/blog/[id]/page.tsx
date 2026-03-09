@@ -133,7 +133,7 @@ export default function BlogPost() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center text-gray-300" style={{ backgroundColor: '#0f0f13' }}>
+            <div className="min-h-screen flex items-center justify-center text-gray-300" style={{ backgroundColor: '#1a1625' }}>
                 <div className="animate-pulse">Loading story...</div>
             </div>
         );
@@ -141,15 +141,15 @@ export default function BlogPost() {
 
     if (!blog) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center text-gray-300 gap-4" style={{ backgroundColor: '#0f0f13' }}>
-                <h1 className="text-2xl">Blog not found</h1>
+            <div className="min-h-screen flex flex-col items-center justify-center text-gray-300 gap-4" style={{ backgroundColor: '#1a1625' }}>
+                <h1 className="text-2xl text-white">Blog not found</h1>
                 <Link href="/" className="text-purple-400 hover:underline">Go Home</Link>
             </div>
         );
     }
 
     return (
-        <article className="min-h-screen text-gray-300 pb-20 pt-20" style={{ backgroundColor: '#0f0f13' }}>
+        <article className="min-h-screen text-gray-300 pb-20 pt-20" style={{ backgroundColor: '#1a1625' }}>
             {/* Header Section */}
             <div className="container mx-auto max-w-4xl px-6 mb-8 mt-8">
                 {/* Back Button */}
@@ -210,6 +210,7 @@ export default function BlogPost() {
                     <div
                         className="prose prose-invert prose-lg md:prose-xl max-w-none text-gray-300 leading-relaxed
                                    prose-headings:text-white prose-a:text-purple-400 hover:prose-a:text-purple-300
+                                   prose-strong:text-white prose-code:text-purple-400
                                    prose-img:rounded-xl prose-img:border prose-img:border-white/10"
                         dangerouslySetInnerHTML={{ __html: processedContent }}
                     />
