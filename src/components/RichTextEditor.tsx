@@ -107,11 +107,31 @@ const CustomBulletList = BulletList.extend({
             ...this.parent?.(),
             class: {
                 default: "list-disc",
-                parseHTML: element => element.getAttribute('class'),
+                parseHTML: element => {
+                    // Get class but strip out 'list-2col' — columns is tracked separately
+                    const cls = element.getAttribute('class') || 'list-disc';
+                    return cls.replace(/\s*list-2col/g, '').trim() || 'list-disc';
+                },
                 renderHTML: attributes => {
                     return {
                         class: attributes.class,
                     };
+                },
+            },
+            columns: {
+                default: 1,
+                parseHTML: element => {
+                    // Support both data-columns and legacy list-2col class
+                    const dataCols = element.getAttribute('data-columns');
+                    if (dataCols) return parseInt(dataCols);
+                    if (element.classList.contains('list-2col')) return 2;
+                    return 1;
+                },
+                renderHTML: attributes => {
+                    if (attributes.columns > 1) {
+                        return { 'data-columns': attributes.columns };
+                    }
+                    return {};
                 },
             },
         };
@@ -645,9 +665,45 @@ const ResizableTextBoxComponent = (props: any) => {
         const handleMouseUp = () => {
             setIsDragging(false);
             if (scrollAnimId) cancelAnimationFrame(scrollAnimId);
+
+            // Compute where this text box should appear among the CONTENT
+            // elements (paragraphs, headings, lists — everything EXCEPT text boxes).
+            // We compare the text box's visual top with each content sibling's midpoint.
+            let targetIndex = -1;
+            if (containerRef.current) {
+                // Find the ProseMirror editor container (the top-level content div).
+                // wrapper.parentElement is TipTap's [data-node-view-wrapper], NOT
+                // the editor container — so we must use .closest() to go higher.
+                const editorContainer = containerRef.current.closest('.ProseMirror, .tiptap');
+                if (editorContainer) {
+                    const textBoxRect = containerRef.current.getBoundingClientRect();
+                    const textBoxTop = textBoxRect.top;
+
+                    // Collect only content children (skip all node-view wrappers
+                    // which contain text boxes)
+                    const contentChildren: Element[] = [];
+                    for (const child of Array.from(editorContainer.children)) {
+                        if (child.hasAttribute('data-node-view-wrapper')) continue;
+                        contentChildren.push(child);
+                    }
+
+                    // Find which content element the text box should appear before
+                    targetIndex = contentChildren.length; // default: after all content
+                    for (let i = 0; i < contentChildren.length; i++) {
+                        const childRect = contentChildren[i].getBoundingClientRect();
+                        const childMid = childRect.top + childRect.height / 2;
+                        if (textBoxTop < childMid) {
+                            targetIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
+
             props.updateAttributes({
                 x: currentPosition.current.x,
                 y: currentPosition.current.y,
+                targetIndex: targetIndex,
             });
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
@@ -1003,6 +1059,15 @@ const TextBox = Node.create({
                 renderHTML: attributes => {
                     return {
                         'data-borderless': attributes.borderless,
+                    };
+                },
+            },
+            targetIndex: {
+                default: -1,
+                parseHTML: element => parseInt(element.getAttribute('data-target-index') || '-1'),
+                renderHTML: attributes => {
+                    return {
+                        'data-target-index': attributes.targetIndex,
                     };
                 },
             },
@@ -1537,6 +1602,29 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                             >
                                 <span className="text-lg">◆</span>
                                 <span className="text-sm text-gray-300">Diamond</span>
+                            </button>
+                            <div className="border-t border-white/10 my-2"></div>
+                            <div className="text-xs text-gray-400 mb-2 px-2">Layout</div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (!editor) return;
+                                    const isActive = editor.isActive("bulletList");
+                                    if (!isActive) {
+                                        editor.chain().focus().toggleBulletList().run();
+                                    }
+                                    // Toggle columns attribute between 1 and 2
+                                    const attrs = editor.getAttributes("bulletList");
+                                    const currentCols = attrs.columns || 1;
+                                    editor.commands.updateAttributes("bulletList", {
+                                        columns: currentCols === 2 ? 1 : 2,
+                                    });
+                                    setShowBulletMenu(false);
+                                }}
+                                className="w-full text-left px-3 py-2 hover:bg-white/10 rounded flex items-center gap-3"
+                            >
+                                <span className="text-lg">▥</span>
+                                <span className="text-sm text-gray-300">2 Columns</span>
                             </button>
                         </div>
                     )}

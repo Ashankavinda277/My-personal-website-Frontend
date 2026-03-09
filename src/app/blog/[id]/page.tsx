@@ -51,12 +51,20 @@ export default function BlogPost() {
         const container = doc.body.firstElementChild;
         if (!container) return blog.content;
 
-        const textBoxes = container.querySelectorAll('.text-box[data-x], .text-box-borderless[data-x]');
+        // Step 1: Collect all text boxes that need repositioning
+        const textBoxes = Array.from(
+            container.querySelectorAll('.text-box[data-x], .text-box-borderless[data-x]')
+        );
+
+        // Step 2: Remove all text boxes from the DOM first, so they don't
+        // interfere with each other's index calculations
+        const textBoxData: { el: HTMLElement; x: number; targetIndex: number }[] = [];
         textBoxes.forEach((textBox) => {
             const el = textBox as HTMLElement;
             const x = parseInt(el.getAttribute('data-x') || '0');
             const y = parseInt(el.getAttribute('data-y') || '0');
-            if (x === 0 && y === 0) return;
+            const targetIndex = parseInt(el.getAttribute('data-target-index') || '-1');
+            if (x === 0 && y === 0 && targetIndex < 0) return;
 
             // Apply float based on horizontal drag direction
             if (x > 0) {
@@ -69,52 +77,47 @@ export default function BlogPost() {
                 el.style.marginBottom = '1rem';
             }
 
-            // Move the text box up/down in the DOM based on y-offset.
-            // Each block sibling is roughly 80-120px in the editor.
-            // We use ~100px as the average to calculate how many siblings to skip.
-            if (y < 0) {
-                const elementsToSkip = Math.round(Math.abs(y) / 100);
-                let target: Element | null = el;
-                for (let i = 0; i < elementsToSkip; i++) {
-                    const prev: Element | null | undefined = target?.previousElementSibling;
-                    if (!prev) break;
-                    target = prev;
-                }
-                // Move the text box before the target element
-                if (target && target !== el) {
-                    container.insertBefore(el, target);
-                }
-            } else if (y > 0) {
-                const elementsToSkip = Math.round(y / 100);
-                let target: Element | null = el;
-                for (let i = 0; i < elementsToSkip; i++) {
-                    const next: Element | null | undefined = target?.nextElementSibling;
-                    if (!next) break;
-                    target = next;
-                }
-                // Move the text box after the target element
-                if (target && target !== el && target.nextSibling) {
-                    container.insertBefore(el, target.nextSibling);
-                } else if (target && target !== el) {
-                    container.appendChild(el);
-                }
-            }
+            el.remove();
+            textBoxData.push({ el, x, targetIndex });
+        });
 
-            // Add a clearfix after the text box to prevent float from affecting unrelated content
+        // Step 3: Now the container has only content elements (no text boxes).
+        // Sort by targetIndex DESCENDING so that inserting from highest to lowest
+        // doesn't shift the positions of later insertions.
+        textBoxData.sort((a, b) => b.targetIndex - a.targetIndex);
+        textBoxData.forEach(({ el, targetIndex }) => {
+            const contentChildren = Array.from(container.children);
+            // Count only non-textbox, non-clearfix children to find the right position
+            const contentOnly = contentChildren.filter(c => 
+                !c.classList.contains('text-box') && 
+                !c.classList.contains('text-box-borderless') &&
+                !c.hasAttribute('data-clearfix')
+            );
+            if (targetIndex >= 0 && targetIndex < contentOnly.length) {
+                container.insertBefore(el, contentOnly[targetIndex]);
+            } else {
+                container.appendChild(el);
+            }
+        });
+
+        // Step 4: Add clearfix divs after text boxes to contain the float
+        const floatedBoxes = container.querySelectorAll('.text-box, .text-box-borderless');
+        floatedBoxes.forEach((box) => {
+            const el = box as HTMLElement;
+            if (!el.style.cssFloat) return;
             const clearDiv = doc.createElement('div');
             clearDiv.style.clear = 'both';
             clearDiv.setAttribute('data-clearfix', 'true');
-            // Find the next non-textbox, non-clearfix sibling that should be the boundary
+            // Place clearfix 3 content siblings after the text box
             let boundary = el.nextElementSibling;
-            // Skip a few siblings to allow text to wrap around the float
-            let wrapCount = Math.max(1, Math.round(Math.abs(y) / 200));
-            while (boundary && wrapCount > 0) {
+            let skip = 3;
+            while (boundary && skip > 0) {
                 if (!boundary.classList.contains('text-box') && 
                     !boundary.classList.contains('text-box-borderless') &&
                     !boundary.hasAttribute('data-clearfix')) {
-                    wrapCount--;
+                    skip--;
                 }
-                if (wrapCount > 0) boundary = boundary.nextElementSibling;
+                if (skip > 0) boundary = boundary.nextElementSibling;
             }
             if (boundary) {
                 container.insertBefore(clearDiv, boundary);
@@ -130,7 +133,7 @@ export default function BlogPost() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-black flex items-center justify-center text-white">
+            <div className="min-h-screen flex items-center justify-center text-gray-300" style={{ backgroundColor: '#0f0f13' }}>
                 <div className="animate-pulse">Loading story...</div>
             </div>
         );
@@ -138,7 +141,7 @@ export default function BlogPost() {
 
     if (!blog) {
         return (
-            <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white gap-4">
+            <div className="min-h-screen flex flex-col items-center justify-center text-gray-300 gap-4" style={{ backgroundColor: '#0f0f13' }}>
                 <h1 className="text-2xl">Blog not found</h1>
                 <Link href="/" className="text-purple-400 hover:underline">Go Home</Link>
             </div>
@@ -146,7 +149,7 @@ export default function BlogPost() {
     }
 
     return (
-        <article className="min-h-screen bg-black text-gray-200 pb-20 pt-20">
+        <article className="min-h-screen text-gray-300 pb-20 pt-20" style={{ backgroundColor: '#0f0f13' }}>
             {/* Header Section */}
             <div className="container mx-auto max-w-4xl px-6 mb-8 mt-8">
                 {/* Back Button */}

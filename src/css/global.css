@@ -464,6 +464,22 @@ body {
     list-style-type: disc !important;
   }
 
+  /* 2-Column List Layout */
+  .prose-invert ul[data-columns="2"],
+  ul[data-columns="2"],
+  .prose-invert ul.list-2col,
+  ul.list-2col {
+    columns: 2 !important;
+    column-gap: 2rem;
+  }
+
+  .prose-invert ul[data-columns="2"] li,
+  ul[data-columns="2"] li,
+  .prose-invert ul.list-2col li,
+  ul.list-2col li {
+    break-inside: avoid;
+  }
+
   .prose-invert ul.list-circle,
   ul.list-circle {
     list-style-type: circle !important;
