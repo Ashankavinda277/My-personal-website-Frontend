@@ -303,28 +303,28 @@ body {
 
   /* Light theme prose (for blog reading page) */
   .prose:not(.prose-invert) p {
-    color: #111111 !important;
+    color: #1e293b !important;
   }
 
   .prose:not(.prose-invert) li {
-    color: #111111 !important;
+    color: #1e293b !important;
   }
 
   .prose:not(.prose-invert) ul,
   .prose:not(.prose-invert) ol {
-    color: #111111 !important;
+    color: #1e293b !important;
   }
 
   .prose:not(.prose-invert) h1,
   .prose:not(.prose-invert) h2,
   .prose:not(.prose-invert) h3,
   .prose:not(.prose-invert) h4 {
-    color: #000000 !important;
+    color: #0f172a !important;
   }
 
   .prose:not(.prose-invert) blockquote {
     @apply border-l-4 border-purple-400 pl-4 italic my-4;
-    color: #222222 !important;
+    color: #475569 !important;
   }
 
   .prose:not(.prose-invert) code {
@@ -332,11 +332,11 @@ body {
   }
 
   .prose:not(.prose-invert) pre {
-    @apply bg-gray-900 p-4 rounded-lg overflow-x-auto mb-4 text-gray-100;
+    @apply bg-slate-900 p-4 rounded-lg overflow-x-auto mb-4 text-slate-100;
   }
 
   .prose:not(.prose-invert) pre code {
-    @apply bg-transparent px-0 py-0 text-gray-100;
+    @apply bg-transparent px-0 py-0 text-slate-100;
   }
 
   .prose:not(.prose-invert) ul:not([class*="list-"]) {
@@ -350,9 +350,14 @@ body {
   }
 
   /* Text Box Styling */
-  .prose-invert .text-box,
-  .text-box {
+  .prose-invert .text-box {
     @apply border-2 border-purple-500/50 rounded-lg p-4 my-2 bg-zinc-900/30;
+    display: block;
+    box-sizing: border-box;
+  }
+
+  .prose:not(.prose-invert) .text-box {
+    @apply border-2 border-purple-300/50 rounded-lg p-4 my-2 bg-purple-50/50;
     display: block;
     box-sizing: border-box;
   }

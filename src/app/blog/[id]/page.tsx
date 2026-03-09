@@ -133,151 +133,99 @@ export default function BlogPost() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center text-black/60" style={{ backgroundColor: '#faf8ff' }}>
-                <div className="animate-pulse">Loading story...</div>
+            <div className="min-h-screen flex items-center justify-center bg-[#0a0510]">
+                <div className="animate-pulse text-zinc-400">Loading story...</div>
             </div>
         );
     }
 
     if (!blog) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center text-black/60 gap-4" style={{ backgroundColor: '#faf8ff' }}>
-                <h1 className="text-2xl text-black">Blog not found</h1>
-                <Link href="/" className="text-purple-600 hover:underline">Go Home</Link>
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0510] gap-4">
+                <h1 className="text-2xl text-white">Blog not found</h1>
+                <Link href="/" className="text-purple-400 hover:underline">Go Home</Link>
             </div>
         );
     }
 
     return (
-        <article className="min-h-screen text-black pb-64 pt-20 relative overflow-hidden" style={{ backgroundColor: '#faf8ff' }}>
-            {/* Top purple glow wave */}
-            <div className="absolute top-0 left-0 right-0 h-64 pointer-events-none z-0">
-                <svg viewBox="0 0 1440 320" className="absolute top-0 w-full" preserveAspectRatio="none" style={{ height: '100%' }}>
-                    <defs>
-                        <linearGradient id="purpleGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#1a0540" stopOpacity="1" />
-                            <stop offset="30%" stopColor="#2e1065" stopOpacity="1" />
-                            <stop offset="60%" stopColor="#5b21b6" stopOpacity="0.85" />
-                            <stop offset="100%" stopColor="#1a0540" stopOpacity="1" />
-                        </linearGradient>
-                        <linearGradient id="purpleGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#1a0540" stopOpacity="0.9" />
-                            <stop offset="50%" stopColor="#2e1065" stopOpacity="0.65" />
-                            <stop offset="100%" stopColor="#1a0540" stopOpacity="0.85" />
-                        </linearGradient>
-                    </defs>
-                    <path fill="url(#purpleGrad1)" d="M0,0 L0,160 Q180,220 360,180 Q540,140 720,190 Q900,240 1080,170 Q1260,100 1440,200 L1440,0 Z" />
-                    <path fill="url(#purpleGrad2)" d="M0,0 L0,120 Q240,200 480,140 Q720,80 960,160 Q1200,240 1440,140 L1440,0 Z" />
-                    <path fill="none" stroke="rgba(196,181,253,0.4)" strokeWidth="2" d="M0,130 Q240,210 480,150 Q720,90 960,170 Q1200,250 1440,150" />
-                </svg>
-                <div className="absolute bottom-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to top, #faf8ff, transparent)' }} />
+        <article className="min-h-screen relative" style={{ backgroundColor: '#0a0510' }}>
+            {/* Ambient background glow */}
+            <div className="fixed inset-0 pointer-events-none z-0">
+                <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full opacity-20"
+                     style={{ background: 'radial-gradient(circle, rgba(91,33,182,0.2) 0%, transparent 70%)', filter: 'blur(100px)' }} />
+                <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full opacity-15"
+                     style={{ background: 'radial-gradient(circle, rgba(30,58,138,0.2) 0%, transparent 70%)', filter: 'blur(100px)' }} />
             </div>
 
-            {/* Left edge glow */}
-            <div className="absolute top-0 left-0 w-72 pointer-events-none z-0"
-                 style={{
-                     bottom: '16rem',
-                     background: 'linear-gradient(to right, rgba(26,5,64,0.6) 0%, rgba(46,16,101,0.3) 30%, rgba(91,33,182,0.1) 60%, transparent 100%)',
-                     maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 90%, transparent 100%)',
-                     WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 90%, transparent 100%)'
-                 }} />
-            {/* Right edge glow */}
-            <div className="absolute top-0 right-0 w-72 pointer-events-none z-0"
-                 style={{
-                     bottom: '16rem',
-                     background: 'linear-gradient(to left, rgba(26,5,64,0.6) 0%, rgba(46,16,101,0.3) 30%, rgba(91,33,182,0.1) 60%, transparent 100%)',
-                     maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 90%, transparent 100%)',
-                     WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 90%, transparent 100%)'
-                 }} />
+            {/* Dark Hero Section */}
+            <div className="relative z-10 pt-28 pb-24 md:pt-32 md:pb-28 px-6">
+                <div className="max-w-4xl mx-auto">
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 text-zinc-400 hover:text-purple-300 transition-colors mb-8 group text-sm"
+                    >
+                        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                        Back to Articles
+                    </Link>
 
-            {/* Header Section */}
-            <div className="container mx-auto max-w-4xl px-6 mb-8 mt-8 relative z-10">
-                <Link
-                    href="/"
-                    className="inline-flex items-center gap-2 text-white font-medium hover:text-purple-200 transition-colors mb-8 group"
-                    style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
-                >
-                    <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                    Back to Articles
-                </Link>
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+                        {blog.title}
+                    </h1>
 
-                <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-                    {blog.title}
-                </h1>
-
-                <div className="flex flex-wrap items-center gap-4 text-sm text-black/70">
-                    {blog.type && (
-                        <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-semibold border border-purple-200">
-                            {blog.type}
-                        </span>
-                    )}
-                    <span className="flex items-center gap-2"><User size={15} /> {blog.author || "Admin"}</span>
-                    <span className="flex items-center gap-2"><Calendar size={15} /> {formatDate(blog.created_at)}</span>
-                    <span className="flex items-center gap-2"><Clock size={15} /> {calculateReadTime(blog.content)}</span>
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-400">
+                        {blog.type && (
+                            <span className="px-3 py-1 rounded-full bg-purple-500/15 text-purple-300 font-medium border border-purple-500/20">
+                                {blog.type}
+                            </span>
+                        )}
+                        <span className="flex items-center gap-2"><User size={15} /> {blog.author || "Admin"}</span>
+                        <span className="flex items-center gap-2"><Calendar size={15} /> {formatDate(blog.created_at)}</span>
+                        <span className="flex items-center gap-2"><Clock size={15} /> {calculateReadTime(blog.content)}</span>
+                    </div>
                 </div>
             </div>
 
-            {/* Hero Image */}
-            <div className="container mx-auto max-w-4xl px-6 mb-12 relative z-10">
-                <div className="relative aspect-video w-full overflow-hidden rounded-2xl md:rounded-3xl border border-purple-200/50 shadow-xl shadow-purple-200/20">
+            {/* Light Reading Card */}
+            <div className="relative z-10 -mt-12 pb-16">
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    className="max-w-4xl mx-auto bg-slate-50 rounded-2xl md:rounded-3xl shadow-2xl shadow-black/50 overflow-hidden"
+                >
+                    {/* Cover Image inside card */}
                     {blog.cover_image ? (
-                        <img
-                            src={blog.cover_image?.startsWith('http') ? blog.cover_image : `${backendBase}${blog.cover_image}`}
-                            alt={blog.title}
-                            className="w-full h-full object-cover"
-                        />
+                        <div className="relative aspect-video w-full overflow-hidden">
+                            <img
+                                src={blog.cover_image?.startsWith('http') ? blog.cover_image : `${backendBase}${blog.cover_image}`}
+                                alt={blog.title}
+                                className="w-full h-full object-cover"
+                            />
+                        </div>
                     ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-purple-100 to-white select-none flex items-center justify-center">
-                            <span className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 opacity-30">
+                        <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-purple-100 to-slate-100 flex items-center justify-center">
+                            <span className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500 opacity-30">
                                 {blog.type || "Story"}
                             </span>
                         </div>
                     )}
-                </div>
-            </div>
 
-            {/* Content Container */}
-            <div className="container mx-auto px-6 relative z-10">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="max-w-4xl mx-auto"
-                >
-                    <div
-                        className="prose prose-lg md:prose-xl max-w-none leading-relaxed
-                                   prose-headings:text-gray-900 prose-p:text-gray-900 prose-li:text-gray-900
-                                   prose-a:text-purple-600 hover:prose-a:text-purple-500
-                                   prose-strong:text-black prose-code:text-purple-600
-                                   prose-blockquote:text-gray-800
-                                   prose-img:rounded-xl prose-img:border prose-img:border-purple-100"
-                        style={{ color: '#111111' }}
-                        dangerouslySetInnerHTML={{ __html: processedContent }}
-                    />
+                    {/* Article Content */}
+                    <div className="p-6 sm:p-8 md:p-12">
+                        <div
+                            className="prose prose-lg md:prose-xl max-w-none leading-relaxed
+                                       prose-headings:text-slate-900 prose-headings:font-bold
+                                       prose-p:text-slate-800 prose-li:text-slate-800
+                                       prose-a:text-purple-600 hover:prose-a:text-purple-500
+                                       prose-strong:text-slate-900 prose-code:text-purple-600
+                                       prose-blockquote:text-slate-600
+                                       prose-img:rounded-xl"
+                            style={{ color: '#1e293b' }}
+                            dangerouslySetInnerHTML={{ __html: processedContent }}
+                        />
+                    </div>
                 </motion.div>
-            </div>
-
-            {/* Bottom purple glow wave - below all content */}
-            <div className="absolute bottom-0 left-0 right-0 h-64 pointer-events-none z-0">
-                <svg viewBox="0 0 1440 320" className="absolute bottom-0 w-full" preserveAspectRatio="none" style={{ height: '100%', transform: 'rotate(180deg)' }}>
-                    <defs>
-                        <linearGradient id="purpleGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#1a0540" stopOpacity="1" />
-                            <stop offset="40%" stopColor="#2e1065" stopOpacity="0.95" />
-                            <stop offset="70%" stopColor="#5b21b6" stopOpacity="0.8" />
-                            <stop offset="100%" stopColor="#1a0540" stopOpacity="1" />
-                        </linearGradient>
-                        <linearGradient id="purpleGrad4" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#2e1065" stopOpacity="0.75" />
-                            <stop offset="50%" stopColor="#1a0540" stopOpacity="0.55" />
-                            <stop offset="100%" stopColor="#2e1065" stopOpacity="0.75" />
-                        </linearGradient>
-                    </defs>
-                    <path fill="url(#purpleGrad3)" d="M0,0 L0,140 Q200,240 400,160 Q600,80 800,180 Q1000,280 1200,150 Q1350,80 1440,180 L1440,0 Z" />
-                    <path fill="url(#purpleGrad4)" d="M0,0 L0,100 Q300,190 600,120 Q900,50 1200,160 Q1350,210 1440,130 L1440,0 Z" />
-                    <path fill="none" stroke="rgba(221,214,254,0.45)" strokeWidth="2" d="M0,110 Q300,200 600,130 Q900,60 1200,170 Q1350,220 1440,140" />
-                </svg>
-                <div className="absolute top-0 left-0 right-0 h-32" style={{ background: 'linear-gradient(to bottom, #faf8ff, transparent)' }} />
             </div>
         </article>
     );
