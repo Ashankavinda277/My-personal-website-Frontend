@@ -1,91 +1,64 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 
-type BlogDto = {
-  title?: string;
-  content?: string;
-  cover_image?: string;
+type Props = {
+  params: Promise<{ id: string }>;
 };
 
-const API_BASE = "https://my-personal-website-backend-seven.vercel.app";
-const SITE_BASE = "https://concepts-blog.vercel.app";
-
-function stripHtml(input: string) {
-  return input.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function truncate(input: string, max = 160) {
-  if (input.length <= max) return input;
-  return input.slice(0, max).trimEnd() + "...";
-}
-
-function pickOgImage(cover?: string) {
-  if (!cover) return `${SITE_BASE}/concept.png`;
-
-  if (cover.startsWith("http://") || cover.startsWith("https://")) {
-    return cover;
-  }
-
-  return `${API_BASE}${cover.startsWith("/") ? cover : `/${cover}`}`;
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata(
+  { params }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
   const { id } = await params;
-
+  
+  const backendBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+  
   try {
-    const res = await fetch(`${API_BASE}/blogs/${id}`, {
-      next: { revalidate: 120 },
-    });
-
+    const res = await fetch(`${backendBase}/blogs/${id}`);
     if (!res.ok) {
-      return {
-        title: "Story",
-        description: "Read this story on Concepts blog.",
-      };
+        return {};
+    }
+    const blog = await res.json();
+
+    const previousImages = (await parent).openGraph?.images || [];
+    
+    let coverImageUrl = undefined;
+    if (blog.cover_image) {
+        coverImageUrl = blog.cover_image.startsWith('http') 
+            ? blog.cover_image 
+            : `${backendBase}${blog.cover_image}`;
     }
 
-    const blog = (await res.json()) as BlogDto;
-    const title = (blog.title || "Story").trim();
-    const description = truncate(stripHtml(blog.content || "Read this story on Concepts blog."));
-    const image = pickOgImage(blog.cover_image);
-    const url = `${SITE_BASE}/blog/${id}`;
+    const title = `${blog.title} | Concepts`;
+    let plainDescription = "Read this story on Concepts blog.";
+    
+    if (blog.content) {
+        const stripped = blog.content.replace(/<[^>]*>?/igm, '');
+        if (stripped.length > 0) {
+            plainDescription = stripped.substring(0, 160).trim() + "...";
+        }
+    }
 
     return {
       title,
-      description,
-      alternates: {
-        canonical: `/blog/${id}`,
-      },
+      description: plainDescription,
       openGraph: {
-        type: "article",
-        siteName: "Concepts",
         title,
-        description,
-        url,
-        images: [
-          {
-            url: image,
-            width: 1200,
-            height: 630,
-            alt: title,
-          },
-        ],
+        description: plainDescription,
+        images: coverImageUrl ? [coverImageUrl, ...previousImages] : previousImages,
+        type: "article",
+        publishedTime: blog.created_at,
+        authors: [blog.author || "Admin"],
       },
       twitter: {
         card: "summary_large_image",
         title,
-        description,
-        images: [image],
+        description: plainDescription,
+        images: coverImageUrl ? [coverImageUrl] : undefined,
       },
     };
-  } catch {
-    return {
-      title: "Story",
-      description: "Read this story on Concepts blog.",
-    };
+  } catch (error) {
+    console.error("Error generating metadata for blog", id, error);
+    return {};
   }
 }
 
@@ -94,5 +67,5 @@ export default function BlogPostLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return <>{children}</>;
 }
