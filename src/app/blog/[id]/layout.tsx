@@ -1,5 +1,8 @@
 import type { Metadata, ResolvingMetadata } from "next";
 
+// Force dynamic rendering so Vercel CDN never caches stale metadata
+export const dynamic = 'force-dynamic';
+
 type Props = {
   params: Promise<{ id: string }>;
 };
@@ -13,7 +16,7 @@ export async function generateMetadata(
   const backendBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
   
   try {
-    const res = await fetch(`${backendBase}/blogs/${id}`);
+    const res = await fetch(`${backendBase}/blogs/${id}`, { cache: 'no-store' });
     if (!res.ok) {
         return {};
     }
