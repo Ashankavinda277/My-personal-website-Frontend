@@ -15,11 +15,36 @@ const jetMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Concepts",
+  metadataBase: new URL("https://concepts-blog.vercel.app"),
+  title: {
+    default: "Concepts",
+    template: "%s | Concepts",
+  },
   description: "Created by concepts.com",
+  openGraph: {
+    type: "website",
+    siteName: "Concepts",
+    url: "https://concepts-blog.vercel.app",
+    title: "Concepts",
+    description: "Created by concepts.com",
+    images: [
+      {
+        url: "/concept.png",
+        width: 1200,
+        height: 630,
+        alt: "Concepts Blog",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Concepts",
+    description: "Created by concepts.com",
+    images: ["/concept.png"],
+  },
   icons: {
-    icon: '/concept.png',
-    apple: '/concept.png',
+    icon: "/concept.png",
+    apple: "/concept.png",
   },
 };
 
