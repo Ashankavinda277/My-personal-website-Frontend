@@ -20,12 +20,21 @@ export async function generateMetadata(
     const blog = await res.json();
 
     const previousImages = (await parent).openGraph?.images || [];
-    
-    let coverImageUrl = undefined;
+    let openGraphImages: any[] = previousImages;
+    let twitterImages: any = undefined;
+
     if (blog.cover_image) {
-        coverImageUrl = blog.cover_image.startsWith('http') 
+        const url = blog.cover_image.startsWith('http') 
             ? blog.cover_image 
             : `${backendBase}${blog.cover_image}`;
+            
+        openGraphImages = [{
+          url,
+          width: 1200,
+          height: 630,
+          alt: blog.title,
+        }];
+        twitterImages = [url];
     }
 
     const title = `${blog.title} | Concepts`;
@@ -44,7 +53,7 @@ export async function generateMetadata(
       openGraph: {
         title,
         description: plainDescription,
-        images: coverImageUrl ? [coverImageUrl, ...previousImages] : previousImages,
+        images: openGraphImages,
         type: "article",
         publishedTime: blog.created_at,
         authors: [blog.author || "Admin"],
@@ -53,7 +62,7 @@ export async function generateMetadata(
         card: "summary_large_image",
         title,
         description: plainDescription,
-        images: coverImageUrl ? [coverImageUrl] : undefined,
+        images: twitterImages,
       },
     };
   } catch (error) {
