@@ -1,0 +1,12 @@
+<meta name="next-size-adjust" content=""/>
+<meta property="og:title" content="Server-Based vs Serverless Architecture: A Clear Comparison | Concepts"/>
+<meta property="og:description" content="As modern applications grow in complexity and scale, choosing the right architecture becomes critical and important. Nowadays, two common approaches are traditi..."/>
+<meta property="og:image" content="https://res.cloudinary.com/dknuzp1mo/image/upload/v1772480179/concepts_blog/concepts_blog/9fac02237f66481aaaad55813afc58ca.webp"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="Server-Based vs Serverless Architecture: A Clear Comparison"/>
+<meta property="og:type" content="article"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content="Server-Based vs Serverless Architecture: A Clear Comparison | Concepts"/>
+<meta name="twitter:description" content="As modern applications grow in complexity and scale, choosing the right architecture becomes critical and important. Nowadays, two common approaches are traditi..."/>
+<meta name="twitter:image" content="https://res.cloudinary.com/dknuzp1mo/image/upload/v1772480179/concepts_blog/concepts_blog/9fac02237f66481aaaad55813afc58ca.webp"/>

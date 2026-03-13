@@ -24,9 +24,15 @@ export async function generateMetadata(
     let twitterImages: any = undefined;
 
     if (blog.cover_image) {
-        const url = blog.cover_image.startsWith('http') 
+        let url = blog.cover_image.startsWith('http') 
             ? blog.cover_image 
             : `${backendBase}${blog.cover_image}`;
+
+        // LinkedIn doesn't reliably support WebP for OG image previews.
+        // Convert Cloudinary WebP URLs to JPEG via URL transformation.
+        if (url.includes('res.cloudinary.com') && url.endsWith('.webp')) {
+            url = url.replace(/\.webp$/, '.jpg');
+        }
             
         openGraphImages = [{
           url,
