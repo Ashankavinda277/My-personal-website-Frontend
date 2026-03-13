@@ -52,16 +52,25 @@ export async function generateMetadata(
     if (blog.content) {
         const stripped = blog.content.replace(/<[^>]*>?/igm, '');
         if (stripped.length > 0) {
-            plainDescription = stripped.substring(0, 160).trim() + "...";
+            // LinkedIn requires description to be at least 100 characters
+            plainDescription = stripped.substring(0, 200).trim();
+            if (stripped.length > 200) plainDescription += "...";
         }
     }
+
+    const blogUrl = `https://concepts-blog.vercel.app/blog/${id}`;
 
     return {
       title,
       description: plainDescription,
+      // Override parent's canonical "/blog" so LinkedIn reads THIS page's metadata
+      alternates: {
+        canonical: blogUrl,
+      },
       openGraph: {
         title,
         description: plainDescription,
+        url: blogUrl,
         images: openGraphImages,
         type: "article",
         publishedTime: blog.created_at,
