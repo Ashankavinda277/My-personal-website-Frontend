@@ -62,6 +62,34 @@ export default function BlogPostClient({ blogId, initialBlog }: BlogPostClientPr
         const container = doc.body.firstElementChild;
         if (!container) return blog.content;
 
+        // --- CLEANUP WYSIWYG EDITOR ARTIFACTS ---
+        
+        // 1. Remove inline colors that might override Tailwind's prose classes
+        const textElements = container.querySelectorAll('h1, h2, h3, h4, h5, h6, li, p, span');
+        textElements.forEach((el) => {
+            const element = el as HTMLElement;
+            if (element.style.color) element.style.color = '';
+        });
+
+        // 2. Fix multi-line code blocks that the editor mistakenly formatted as inline <code> instead of <pre><code>
+        const allCodeBlocks = container.querySelectorAll('code');
+        allCodeBlocks.forEach((codeEl) => {
+            const parent = codeEl.parentElement;
+            // If the code element has line breaks and is NOT inside a <pre>, it should be a block
+            if (parent && parent.tagName.toLowerCase() !== 'pre' && codeEl.innerHTML.match(/<br>|\n/i)) {
+                const pre = doc.createElement('pre');
+                if (parent.tagName.toLowerCase() === 'p' && parent.textContent?.trim() === codeEl.textContent?.trim()) {
+                    // The <p> wrapper is redundant, replace it with <pre>
+                    parent.parentElement?.insertBefore(pre, parent);
+                    pre.appendChild(codeEl);
+                    parent.remove();
+                } else {
+                    parent.insertBefore(pre, codeEl);
+                    pre.appendChild(codeEl);
+                }
+            }
+        });
+
         const textBoxes = container.querySelectorAll('.text-box, .text-box-borderless');
 
         Array.from(textBoxes).reverse().forEach((textBox) => {
