@@ -645,9 +645,48 @@ const ResizableTextBoxComponent = (props: any) => {
         const handleMouseUp = () => {
             setIsDragging(false);
             if (scrollAnimId) cancelAnimationFrame(scrollAnimId);
+
+            // Calculate siblingOffset by measuring actual rendered sibling positions
+            let siblingOffset = 0;
+            const wrapper = containerRef.current?.closest('.resizable-textbox-wrapper') as HTMLElement | null;
+            if (wrapper && currentPosition.current.y !== 0) {
+                const parent = wrapper.parentElement;
+                if (parent) {
+                    const siblings = Array.from(parent.children) as HTMLElement[];
+                    const currentIndex = siblings.indexOf(wrapper);
+                    const wrapperTop = wrapper.getBoundingClientRect().top;
+                    const targetY = wrapperTop + currentPosition.current.y;
+
+                    if (currentPosition.current.y < 0) {
+                        // Dragged up — count siblings whose center we've passed above
+                        for (let i = currentIndex - 1; i >= 0; i--) {
+                            const sibRect = siblings[i].getBoundingClientRect();
+                            const sibCenter = (sibRect.top + sibRect.bottom) / 2;
+                            if (sibCenter > targetY) {
+                                siblingOffset--;
+                            } else {
+                                break;
+                            }
+                        }
+                    } else {
+                        // Dragged down — count siblings whose center we've passed below
+                        for (let i = currentIndex + 1; i < siblings.length; i++) {
+                            const sibRect = siblings[i].getBoundingClientRect();
+                            const sibCenter = (sibRect.top + sibRect.bottom) / 2;
+                            if (sibCenter < targetY) {
+                                siblingOffset++;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
             props.updateAttributes({
                 x: currentPosition.current.x,
                 y: currentPosition.current.y,
+                siblingOffset,
             });
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
@@ -1006,6 +1045,18 @@ const TextBox = Node.create({
                     };
                 },
             },
+            siblingOffset: {
+                default: 0,
+                parseHTML: element => {
+                    const val = element.getAttribute('data-sibling-offset');
+                    return val ? parseInt(val) : 0;
+                },
+                renderHTML: attributes => {
+                    return {
+                        'data-sibling-offset': attributes.siblingOffset,
+                    };
+                },
+            },
         };
     },
 
@@ -1025,21 +1076,9 @@ const TextBox = Node.create({
         const heightVal = HTMLAttributes['data-height'];
         const heightStyle = (heightVal && heightVal !== 'auto') ? `min-height: ${heightVal}px;` : '';
         const width = HTMLAttributes['data-width'] || 400;
-        const x = parseInt(HTMLAttributes['data-x']) || 0;
         
         const boxClass = isBorderless ? 'text-box-borderless' : 'text-box';
-        
-        // Use CSS float for text wrapping (like Microsoft Word).
-        // If dragged right (x > 0) → float right, if left (x < 0) → float left.
-        // This works naturally in any layout without pixel-perfect positioning.
-        let floatStyle = '';
-        if (x > 0) {
-            floatStyle = 'float: right; margin-left: 1.5rem; margin-bottom: 1rem;';
-        } else if (x < 0) {
-            floatStyle = 'float: left; margin-right: 1.5rem; margin-bottom: 1rem;';
-        }
-        
-        const boxStyle = `width: ${width}px; ${heightStyle} ${floatStyle}`;
+        const boxStyle = `width: ${width}px; ${heightStyle}`.trim();
         
         return ['div', { 
             ...HTMLAttributes, 

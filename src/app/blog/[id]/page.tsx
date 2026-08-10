@@ -1,217 +1,100 @@
-"use client";
-
-import { useEffect, useState, useMemo } from "react";
-import { useParams } from "next/navigation";
-import api from "../../../utils/api";
-import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, User, Clock } from "lucide-react";
-import Link from "next/link";
-import { formatDate, calculateReadTime } from "../../../utils/format";
+import type { Metadata } from "next";
+import BlogPostClient from "./BlogPostClient";
 
 interface Blog {
     _id?: string;
     id?: string;
     title: string;
-    content: string;
+    content?: string;
     cover_image?: string;
     type?: string;
     created_at?: string;
+    updated_at?: string;
     author?: string;
 }
 
-export default function BlogPost() {
-    const { id } = useParams();
-    const [blog, setBlog] = useState<Blog | null>(null);
-    const [loading, setLoading] = useState(true);
+const backendBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+const siteBase = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
-    useEffect(() => {
-        if (!id) return;
-        api.get(`/blogs/${id}`)
-            .then((res) => {
-                setBlog(res.data);
-                setLoading(false);
-            })
-            .catch((err) => {
-                console.error("Failed to load blog", err);
-                setLoading(false);
-            });
-    }, [id]);
+export const dynamic = "force-dynamic";
 
-    // Pre-process blog HTML: move text boxes to the correct DOM position and apply float.
-    // In the editor, dragging only changes visual CSS offset (data-x, data-y) — the node
-    // stays at its original document position. So a text box created near the end but
-    // dragged up to appear beside the features list is still at the bottom of the HTML.
-    // We fix this by moving it up in the DOM by the right number of siblings, then floating it.
-    const processedContent = useMemo(() => {
-        if (!blog?.content) return '';
-        if (typeof window === 'undefined') return blog.content;
+function stripHtml(html?: string): string {
+    if (!html) return "";
+    return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(`<div>${blog.content}</div>`, 'text/html');
-        const container = doc.body.firstElementChild;
-        if (!container) return blog.content;
+function resolveImageUrl(image?: string): string | null {
+    if (!image) return null;
+    if (image.startsWith("http")) return image;
+    return `${backendBase}${image}`;
+}
 
-        const textBoxes = container.querySelectorAll('.text-box[data-x], .text-box-borderless[data-x]');
-        textBoxes.forEach((textBox) => {
-            const el = textBox as HTMLElement;
-            const x = parseInt(el.getAttribute('data-x') || '0');
-            const y = parseInt(el.getAttribute('data-y') || '0');
-            if (x === 0 && y === 0) return;
-
-            // Apply float based on horizontal drag direction
-            if (x > 0) {
-                el.style.cssFloat = 'right';
-                el.style.marginLeft = '1.5rem';
-                el.style.marginBottom = '1rem';
-            } else if (x < 0) {
-                el.style.cssFloat = 'left';
-                el.style.marginRight = '1.5rem';
-                el.style.marginBottom = '1rem';
-            }
-
-            // Move the text box up/down in the DOM based on y-offset.
-            // Each block sibling is roughly 80-120px in the editor.
-            // We use ~100px as the average to calculate how many siblings to skip.
-            if (y < 0) {
-                const elementsToSkip = Math.round(Math.abs(y) / 100);
-                let target: Element | null = el;
-                for (let i = 0; i < elementsToSkip; i++) {
-                    const prev: Element | null | undefined = target?.previousElementSibling;
-                    if (!prev) break;
-                    target = prev;
-                }
-                // Move the text box before the target element
-                if (target && target !== el) {
-                    container.insertBefore(el, target);
-                }
-            } else if (y > 0) {
-                const elementsToSkip = Math.round(y / 100);
-                let target: Element | null = el;
-                for (let i = 0; i < elementsToSkip; i++) {
-                    const next: Element | null | undefined = target?.nextElementSibling;
-                    if (!next) break;
-                    target = next;
-                }
-                // Move the text box after the target element
-                if (target && target !== el && target.nextSibling) {
-                    container.insertBefore(el, target.nextSibling);
-                } else if (target && target !== el) {
-                    container.appendChild(el);
-                }
-            }
-
-            // Add a clearfix after the text box to prevent float from affecting unrelated content
-            const clearDiv = doc.createElement('div');
-            clearDiv.style.clear = 'both';
-            clearDiv.setAttribute('data-clearfix', 'true');
-            // Find the next non-textbox, non-clearfix sibling that should be the boundary
-            let boundary = el.nextElementSibling;
-            // Skip a few siblings to allow text to wrap around the float
-            let wrapCount = Math.max(1, Math.round(Math.abs(y) / 200));
-            while (boundary && wrapCount > 0) {
-                if (!boundary.classList.contains('text-box') && 
-                    !boundary.classList.contains('text-box-borderless') &&
-                    !boundary.hasAttribute('data-clearfix')) {
-                    wrapCount--;
-                }
-                if (wrapCount > 0) boundary = boundary.nextElementSibling;
-            }
-            if (boundary) {
-                container.insertBefore(clearDiv, boundary);
-            } else {
-                container.appendChild(clearDiv);
-            }
+async function getBlog(blogId: string): Promise<Blog | null> {
+    try {
+        const response = await fetch(`${backendBase}/blogs/${blogId}`, {
+            cache: "no-store",
         });
 
-        return container.innerHTML;
-    }, [blog?.content]);
+        if (!response.ok) {
+            return null;
+        }
 
-    const backendBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center text-white">
-                <div className="animate-pulse">Loading story...</div>
-            </div>
-        );
+        return response.json();
+    } catch {
+        return null;
     }
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+    const blog = await getBlog(params.id);
 
     if (!blog) {
-        return (
-            <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white gap-4">
-                <h1 className="text-2xl">Blog not found</h1>
-                <Link href="/" className="text-purple-400 hover:underline">Go Home</Link>
-            </div>
-        );
+        return {
+            title: "Blog not found | Concepts",
+            description: "The requested blog post could not be found.",
+        };
     }
 
-    return (
-        <article className="min-h-screen bg-black text-gray-200 pb-20 pt-20">
-            {/* Header Section */}
-            <div className="container mx-auto max-w-4xl px-6 mb-8 mt-8">
-                {/* Back Button */}
-                <Link
-                    href="/"
-                    className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8 group"
-                >
-                    <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                    Back to Articles
-                </Link>
+    const description = stripHtml(blog.content).slice(0, 160) || "Read this article on Concepts.";
+    const updatedAt = blog.updated_at ? new Date(blog.updated_at).getTime() : Date.now();
+    const imageUrl = resolveImageUrl(blog.cover_image) ?? `${siteBase}/concept.png`;
+    const shareImage = new URL(imageUrl, siteBase);
+    shareImage.searchParams.set("v", String(updatedAt));
 
-                {/* Article Header Information */}
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-                    {blog.title}
-                </h1>
+    const canonicalUrl = `${siteBase}/blog/${params.id}`;
 
-                {/* Metadata */}
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                    {blog.type && (
-                        <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 font-semibold border border-purple-500/20">
-                            {blog.type}
-                        </span>
-                    )}
-                    <span className="flex items-center gap-2"><User size={15} /> {blog.author || "Admin"}</span>
-                    <span className="flex items-center gap-2"><Calendar size={15} /> {formatDate(blog.created_at)}</span>
-                    <span className="flex items-center gap-2"><Clock size={15} /> {calculateReadTime(blog.content)}</span>
-                </div>
-            </div>
+    return {
+        title: `${blog.title} | Concepts`,
+        description,
+        alternates: {
+            canonical: canonicalUrl,
+        },
+        openGraph: {
+            title: blog.title,
+            description,
+            url: canonicalUrl,
+            siteName: "Concepts",
+            type: "article",
+            images: [
+                {
+                    url: shareImage.toString(),
+                    width: 1200,
+                    height: 630,
+                    alt: blog.title,
+                },
+            ],
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: blog.title,
+            description,
+            images: [shareImage.toString()],
+        },
+    };
+}
 
-            {/* Hero Image */}
-            <div className="container mx-auto max-w-4xl px-6 mb-12">
-                <div className="relative aspect-video w-full overflow-hidden rounded-2xl md:rounded-3xl border border-white/10 shadow-2xl">
-                    {blog.cover_image ? (
-                        <img
-                            src={blog.cover_image?.startsWith('http') ? blog.cover_image : `${backendBase}${blog.cover_image}`}
-                            alt={blog.title}
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-purple-900/40 to-black select-none flex items-center justify-center">
-                            <span className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 opacity-30">
-                                {blog.type || "Story"}
-                            </span>
-                        </div>
-                    )}
-                </div>
-            </div>
+export default async function BlogPostPage({ params }: { params: { id: string } }) {
+    const blog = await getBlog(params.id);
 
-            {/* Content Container */}
-            <div className="container mx-auto px-6 relative z-10">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="max-w-4xl mx-auto"
-                >
-                    {/* Content Body */}
-                    <div
-                        className="prose prose-invert prose-lg md:prose-xl max-w-none text-gray-300 leading-relaxed
-                                   prose-headings:text-white prose-a:text-purple-400 hover:prose-a:text-purple-300
-                                   prose-img:rounded-xl prose-img:border prose-img:border-white/10"
-                        dangerouslySetInnerHTML={{ __html: processedContent }}
-                    />
-                </motion.div>
-            </div>
-        </article>
-    );
+    return <BlogPostClient blogId={params.id} initialBlog={blog} />;
 }

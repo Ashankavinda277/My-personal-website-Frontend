@@ -317,13 +317,12 @@ body {
     max-width: 100%;
   }
 
-  /* On mobile screens, disable float and make text boxes full width */
+  /* On mobile screens, make text boxes full width */
   @media (max-width: 768px) {
     .prose-invert .text-box,
     .text-box,
     .prose-invert .text-box-borderless,
     .text-box-borderless {
-      float: none !important;
       width: 100% !important;
       margin-left: 0 !important;
       margin-right: 0 !important;
