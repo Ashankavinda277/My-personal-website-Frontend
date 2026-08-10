@@ -27,15 +27,11 @@ export async function generateMetadata(
     let twitterImages: any = undefined;
 
     if (blog.cover_image) {
-        let url = blog.cover_image.startsWith('http') 
-            ? blog.cover_image 
-            : `${backendBase}${blog.cover_image}`;
-
-        // LinkedIn doesn't reliably support WebP for OG image previews.
-        // Convert Cloudinary WebP URLs to JPEG via URL transformation.
-        if (url.includes('res.cloudinary.com') && url.endsWith('.webp')) {
-            url = url.replace(/\.webp$/, '.jpg');
-        }
+        // Use the backend's OG image proxy endpoint — it serves images with
+        // no-cache headers, so LinkedIn/Facebook crawlers always get the latest image.
+        // The timestamp changes on every update, forcing crawlers to see a "new" URL.
+        const updatedAt = blog.updated_at ? new Date(blog.updated_at).getTime() : Date.now();
+        const url = `${backendBase}/blogs/${id}/og-image?v=${updatedAt}`;
             
         openGraphImages = [{
           url,
