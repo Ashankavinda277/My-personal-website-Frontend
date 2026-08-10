@@ -208,14 +208,14 @@ export default function BlogPostClient({ blogId, initialBlog }: BlogPostClientPr
                     {/* Article Content */}
                     <div className="p-6 sm:p-8 md:p-12">
                         <div
-                            className="prose prose-lg md:prose-xl max-w-none leading-relaxed
-                                       prose-headings:text-slate-900 prose-headings:font-bold
-                                       prose-p:text-slate-800 prose-li:text-slate-800
+                            className="prose prose-lg md:prose-xl max-w-none leading-relaxed text-[#334155]
+                                       prose-headings:text-[#8b5cf6] prose-headings:font-medium
+                                       prose-p:text-slate-700 prose-li:text-slate-700
                                        prose-a:text-purple-600 hover:prose-a:text-purple-500
-                                       prose-strong:text-slate-900 prose-code:text-purple-600
-                                       prose-blockquote:text-slate-600
-                                       prose-img:rounded-xl"
-                            style={{ color: '#1e293b' }}
+                                       prose-strong:text-slate-800 
+                                       prose-code:bg-slate-100 prose-code:text-pink-600 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:font-normal
+                                       prose-pre:bg-[#0f172a] prose-pre:text-gray-100 prose-pre:shadow-lg prose-pre:rounded-xl
+                                       prose-img:rounded-xl prose-img:shadow-md"
                             dangerouslySetInnerHTML={{ __html: processedContent }}
                         />
                     </div>
