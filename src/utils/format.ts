@@ -27,19 +27,19 @@ export function calculateReadTime(content?: string): string {
     return `${minutes} min read`;
 }
 
-/**
- * Strip HTML tags from a string and return plain text
- */
 export function stripHtmlTags(html: string): string {
     if (!html) return "";
 
     // Remove HTML tags
     const withoutTags = html.replace(/<[^>]*>/g, " ");
 
-    // Decode HTML entities
-    const textarea = document.createElement("textarea");
-    textarea.innerHTML = withoutTags;
-    const decoded = textarea.value;
+    let decoded = withoutTags;
+    // Decode HTML entities only on the client
+    if (typeof document !== "undefined") {
+        const textarea = document.createElement("textarea");
+        textarea.innerHTML = withoutTags;
+        decoded = textarea.value;
+    }
 
     // Clean up extra whitespace
     return decoded.replace(/\s+/g, " ").trim();
