@@ -127,79 +127,98 @@ export default function BlogPostClient({ blogId, initialBlog }: BlogPostClientPr
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-black flex items-center justify-center text-white">
-                <div className="animate-pulse">Loading story...</div>
+            <div className="min-h-screen flex items-center justify-center bg-[#0a0510]">
+                <div className="animate-pulse text-zinc-400">Loading story...</div>
             </div>
         );
     }
 
     if (!blog) {
         return (
-            <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white gap-4">
-                <h1 className="text-2xl">Blog not found</h1>
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0510] gap-4">
+                <h1 className="text-2xl text-white">Blog not found</h1>
                 <Link href="/" className="text-purple-400 hover:underline">Go Home</Link>
             </div>
         );
     }
 
     return (
-        <article className="min-h-screen bg-black text-gray-200 pb-20 pt-20">
-            <div className="container mx-auto max-w-4xl px-6 mb-8 mt-8">
-                <Link
-                    href="/"
-                    className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8 group"
-                >
-                    <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                    Back to Articles
-                </Link>
+        <article className="min-h-screen relative" style={{ backgroundColor: '#0a0510' }}>
+            {/* Ambient background glow */}
+            <div className="fixed inset-0 pointer-events-none z-0">
+                <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] rounded-full opacity-20"
+                     style={{ background: 'radial-gradient(circle, rgba(91,33,182,0.2) 0%, transparent 70%)', filter: 'blur(100px)' }} />
+                <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full opacity-15"
+                     style={{ background: 'radial-gradient(circle, rgba(30,58,138,0.2) 0%, transparent 70%)', filter: 'blur(100px)' }} />
+            </div>
 
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-                    {blog.title}
-                </h1>
+            {/* Dark Hero Section */}
+            <div className="relative z-10 pt-28 pb-24 md:pt-32 md:pb-28 px-6">
+                <div className="max-w-4xl mx-auto">
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 text-zinc-400 hover:text-purple-300 transition-colors mb-8 group text-sm"
+                    >
+                        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                        Back to Articles
+                    </Link>
 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                    {blog.type && (
-                        <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 font-semibold border border-purple-500/20">
-                            {blog.type}
-                        </span>
-                    )}
-                    <span className="flex items-center gap-2"><User size={15} /> {blog.author || "Admin"}</span>
-                    <span className="flex items-center gap-2"><Calendar size={15} /> {formatDate(blog.created_at)}</span>
-                    <span className="flex items-center gap-2"><Clock size={15} /> {calculateReadTime(blog.content)}</span>
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
+                        {blog.title}
+                    </h1>
+
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-400">
+                        {blog.type && (
+                            <span className="px-3 py-1 rounded-full bg-purple-500/15 text-purple-300 font-medium border border-purple-500/20">
+                                {blog.type}
+                            </span>
+                        )}
+                        <span className="flex items-center gap-2"><User size={15} /> {blog.author || "Admin"}</span>
+                        <span className="flex items-center gap-2"><Calendar size={15} /> {formatDate(blog.created_at)}</span>
+                        <span className="flex items-center gap-2"><Clock size={15} /> {calculateReadTime(blog.content)}</span>
+                    </div>
                 </div>
             </div>
 
-            <div className="container mx-auto max-w-4xl px-6 mb-12">
-                <div className="relative aspect-video w-full overflow-hidden rounded-2xl md:rounded-3xl border border-white/10 shadow-2xl">
+            {/* Light Reading Card */}
+            <div className="relative z-10 -mt-12 pb-16">
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                    className="max-w-4xl mx-auto bg-slate-50 rounded-2xl md:rounded-3xl shadow-2xl shadow-black/50 overflow-hidden"
+                >
+                    {/* Cover Image inside card */}
                     {blog.cover_image ? (
-                        <img
-                            src={blog.cover_image?.startsWith('http') ? blog.cover_image : `${backendBase}${blog.cover_image}`}
-                            alt={blog.title}
-                            className="w-full h-full object-cover"
-                        />
+                        <div className="relative aspect-video w-full overflow-hidden">
+                            <img
+                                src={blog.cover_image?.startsWith('http') ? blog.cover_image : `${backendBase}${blog.cover_image}`}
+                                alt={blog.title}
+                                className="w-full h-full object-cover"
+                            />
+                        </div>
                     ) : (
-                        <div className="w-full h-full bg-linear-to-br from-purple-900/40 to-black select-none flex items-center justify-center">
-                            <span className="text-4xl font-bold bg-clip-text text-transparent bg-linear-to-r from-purple-400 to-pink-600 opacity-30">
+                        <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-purple-100 to-slate-100 flex items-center justify-center">
+                            <span className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-500 opacity-30">
                                 {blog.type || "Story"}
                             </span>
                         </div>
                     )}
-                </div>
-            </div>
 
-            <div className="container mx-auto px-6 relative z-10">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="max-w-4xl mx-auto"
-                >
-                    <div
-                        className="prose prose-invert prose-lg md:prose-xl max-w-none text-gray-300 leading-relaxed
-                                   prose-headings:text-white prose-a:text-purple-400 hover:prose-a:text-purple-300
-                                   prose-img:rounded-xl prose-img:border prose-img:border-white/10"
-                        dangerouslySetInnerHTML={{ __html: processedContent }}
-                    />
+                    {/* Article Content */}
+                    <div className="p-6 sm:p-8 md:p-12">
+                        <div
+                            className="prose prose-lg md:prose-xl max-w-none leading-relaxed
+                                       prose-headings:text-slate-900 prose-headings:font-bold
+                                       prose-p:text-slate-800 prose-li:text-slate-800
+                                       prose-a:text-purple-600 hover:prose-a:text-purple-500
+                                       prose-strong:text-slate-900 prose-code:text-purple-600
+                                       prose-blockquote:text-slate-600
+                                       prose-img:rounded-xl"
+                            style={{ color: '#1e293b' }}
+                            dangerouslySetInnerHTML={{ __html: processedContent }}
+                        />
+                    </div>
                 </motion.div>
             </div>
         </article>
