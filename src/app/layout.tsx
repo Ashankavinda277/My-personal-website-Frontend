@@ -15,15 +15,19 @@ const jetMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Concepts",
+  metadataBase: new URL("https://concepts-blog.vercel.app"),
+  title: {
+    default: "Concepts",
+    template: "%s | Concepts",
+  },
   description: "Created by concepts.com",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ||
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
   ),
   icons: {
-    icon: '/concept.png',
-    apple: '/concept.png',
+    icon: "/concept.png",
+    apple: "/concept.png",
   },
 };
 

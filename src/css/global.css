@@ -255,6 +255,12 @@ body {
     @apply text-gray-300 mb-3;
   }
 
+  /* Preserve empty paragraphs (blank lines from pressing Enter twice) */
+  .prose-invert p:empty,
+  .prose p:empty {
+    min-height: 1.5em;
+  }
+
   .prose-invert ul,
   .prose-invert ol {
     @apply text-gray-300 mb-3;
@@ -295,13 +301,65 @@ body {
     @apply border-l-4 border-purple-500 pl-4 italic text-gray-400 my-4;
   }
 
+  /* Light theme prose (for blog reading page) */
+  .prose:not(.prose-invert) p {
+    color: #1e293b !important;
+  }
+
+  .prose:not(.prose-invert) li {
+    color: #1e293b !important;
+  }
+
+  .prose:not(.prose-invert) ul,
+  .prose:not(.prose-invert) ol {
+    color: #1e293b !important;
+  }
+
+  .prose:not(.prose-invert) h1,
+  .prose:not(.prose-invert) h2,
+  .prose:not(.prose-invert) h3,
+  .prose:not(.prose-invert) h4 {
+    color: #0f172a !important;
+  }
+
+  .prose:not(.prose-invert) blockquote {
+    @apply border-l-4 border-purple-400 pl-4 italic my-4;
+    color: #475569 !important;
+  }
+
+  .prose:not(.prose-invert) code {
+    @apply bg-purple-50 px-1.5 py-0.5 rounded text-purple-700 text-sm;
+  }
+
+  .prose:not(.prose-invert) pre {
+    @apply bg-slate-900 p-4 rounded-lg overflow-x-auto mb-4 text-slate-100;
+  }
+
+  .prose:not(.prose-invert) pre code {
+    @apply bg-transparent px-0 py-0 text-slate-100;
+  }
+
+  .prose:not(.prose-invert) ul:not([class*="list-"]) {
+    list-style-type: disc;
+    padding-left: 2.5em;
+  }
+
+  .prose:not(.prose-invert) ol:not([class*="list-"]) {
+    list-style-type: decimal;
+    padding-left: 2.5em;
+  }
+
   /* Text Box Styling */
-  .prose-invert .text-box,
-  .text-box {
+  .prose-invert .text-box {
     @apply border-2 border-purple-500/50 rounded-lg p-4 my-2 bg-zinc-900/30;
     display: block;
     box-sizing: border-box;
-    max-width: 100%;
+  }
+
+  .prose:not(.prose-invert) .text-box {
+    @apply border-2 border-purple-300/50 rounded-lg p-4 my-2 bg-purple-50/50;
+    display: block;
+    box-sizing: border-box;
   }
 
   /* Borderless Text Box - no border, no background, no padding */
@@ -314,7 +372,6 @@ body {
     border-radius: 0 !important;
     box-shadow: none !important;
     box-sizing: border-box;
-    max-width: 100%;
   }
 
   /* On mobile screens, make text boxes full width */
@@ -324,6 +381,7 @@ body {
     .prose-invert .text-box-borderless,
     .text-box-borderless {
       width: 100% !important;
+      max-width: 100% !important;
       margin-left: 0 !important;
       margin-right: 0 !important;
     }
@@ -462,6 +520,32 @@ body {
   .prose-invert ul.list-disc,
   ul.list-disc {
     list-style-type: disc !important;
+  }
+
+  /* 2-Column List Layout */
+  .prose-invert ul[data-columns="2"],
+  ul[data-columns="2"],
+  .prose-invert ul.list-2col,
+  ul.list-2col {
+    columns: 2 !important;
+    column-gap: 2rem;
+  }
+
+  /* On mobile, collapse 2-column lists to single column */
+  @media (max-width: 768px) {
+    .prose-invert ul[data-columns="2"],
+    ul[data-columns="2"],
+    .prose-invert ul.list-2col,
+    ul.list-2col {
+      columns: 1 !important;
+    }
+  }
+
+  .prose-invert ul[data-columns="2"] li,
+  ul[data-columns="2"] li,
+  .prose-invert ul.list-2col li,
+  ul.list-2col li {
+    break-inside: avoid;
   }
 
   .prose-invert ul.list-circle,

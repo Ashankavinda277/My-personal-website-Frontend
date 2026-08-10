@@ -107,11 +107,31 @@ const CustomBulletList = BulletList.extend({
             ...this.parent?.(),
             class: {
                 default: "list-disc",
-                parseHTML: element => element.getAttribute('class'),
+                parseHTML: element => {
+                    // Get class but strip out 'list-2col' — columns is tracked separately
+                    const cls = element.getAttribute('class') || 'list-disc';
+                    return cls.replace(/\s*list-2col/g, '').trim() || 'list-disc';
+                },
                 renderHTML: attributes => {
                     return {
                         class: attributes.class,
                     };
+                },
+            },
+            columns: {
+                default: 1,
+                parseHTML: element => {
+                    // Support both data-columns and legacy list-2col class
+                    const dataCols = element.getAttribute('data-columns');
+                    if (dataCols) return parseInt(dataCols);
+                    if (element.classList.contains('list-2col')) return 2;
+                    return 1;
+                },
+                renderHTML: attributes => {
+                    if (attributes.columns > 1) {
+                        return { 'data-columns': attributes.columns };
+                    }
+                    return {};
                 },
             },
         };
@@ -488,7 +508,7 @@ const ResizableImage = Node.create({
         const { width, height, ...rest } = HTMLAttributes;
         const styles: string[] = [];
         const attrs: Record<string, any> = { ...rest };
-        
+
         if (width) {
             attrs.width = width;
             styles.push(`width: ${width}px`);
@@ -500,7 +520,7 @@ const ResizableImage = Node.create({
         if (styles.length > 0) {
             attrs.style = styles.join('; ') + ';';
         }
-        
+
         return ['img', attrs];
     },
 
@@ -539,7 +559,7 @@ const ResizableTextBoxComponent = (props: any) => {
     const handleResizeMouseDown = (e: React.MouseEvent, corner: string) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const startX = e.clientX;
         const startY = e.clientY;
         const startWidth = dimensions.width;
@@ -584,17 +604,17 @@ const ResizableTextBoxComponent = (props: any) => {
     // Handle drag
     const handleDragMouseDown = (e: React.MouseEvent) => {
         if (!props.selected) return;
-        
+
         // Only allow dragging from the drag handle or border, not the content
         const target = e.target as HTMLElement;
-        if (!target.classList.contains('drag-handle') && 
+        if (!target.classList.contains('drag-handle') &&
             !target.classList.contains('textbox-border')) {
             return;
         }
 
         e.preventDefault();
         setIsDragging(true);
-        
+
         const startX = e.clientX;
         const startY = e.clientY;
         const startPosX = position.x;
@@ -700,7 +720,7 @@ const ResizableTextBoxComponent = (props: any) => {
     const handleSelectTextBox = (e: React.MouseEvent) => {
         const target = e.target as HTMLElement;
         // Select if clicking on the border area or container, not the inner content
-        if (target.classList.contains('text-box-content') || 
+        if (target.classList.contains('text-box-content') ||
             target.classList.contains('textbox-container')) {
             // Check if clicking on border/padding area (not on the actual editable content)
             const contentDiv = target.classList.contains('text-box-content') ? target : target.querySelector('.text-box-content');
@@ -709,9 +729,9 @@ const ResizableTextBoxComponent = (props: any) => {
                 const padding = 16; // 1rem = 16px
                 const clickX = e.clientX - rect.left;
                 const clickY = e.clientY - rect.top;
-                
+
                 // If clicking in the padding/border area (not in the inner content area)
-                if (clickX < padding || clickX > rect.width - padding || 
+                if (clickX < padding || clickX > rect.width - padding ||
                     clickY < padding || clickY > rect.height - padding) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -732,11 +752,11 @@ const ResizableTextBoxComponent = (props: any) => {
             position: 'relative',
             ...(hasMoved ? { height: 0, overflow: 'visible' } : {}),
         }}>
-            <div 
+            <div
                 ref={containerRef}
-                className="textbox-container" 
+                className="textbox-container"
                 onClick={handleSelectTextBox}
-                style={{ 
+                style={{
                     width: `${dimensions.width}px`,
                     ...(dimensions.height !== 'auto' ? { minHeight: `${dimensions.height}px` } : {}),
                     position: hasMoved ? 'absolute' : 'relative',
@@ -774,14 +794,14 @@ const ResizableTextBoxComponent = (props: any) => {
                         >
                             ⠿
                         </div>
-                        
+
                         {/* Remove Text Box Border Button */}
                         <button
                             type="button"
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                
+
                                 // Toggle borderless mode instead of deleting
                                 props.updateAttributes({
                                     borderless: true,
@@ -818,31 +838,31 @@ const ResizableTextBoxComponent = (props: any) => {
                         </button>
                     </>
                 )}
-                
-                <div 
+
+                <div
                     className="text-box-content"
                     onClick={handleSelectTextBox}
                     style={{
                         width: '100%',
                         minHeight: '100%',
                         padding: isBorderless ? '0' : '1rem',
-                        border: isBorderless 
-                            ? 'none' 
-                            : (props.selected 
-                                ? '2px solid rgba(168, 85, 247, 0.9)' 
+                        border: isBorderless
+                            ? 'none'
+                            : (props.selected
+                                ? '2px solid rgba(168, 85, 247, 0.9)'
                                 : '2px solid rgba(168, 85, 247, 0.5)'),
                         borderRadius: isBorderless ? '0' : '0.5rem',
                         backgroundColor: isBorderless ? 'transparent' : 'rgba(24, 24, 27, 0.3)',
                         cursor: 'text',
                         transition: 'border-color 0.2s, box-shadow 0.2s',
-                        boxShadow: (props.selected && !isBorderless) 
-                            ? '0 0 0 1px rgba(168, 85, 247, 0.3)' 
+                        boxShadow: (props.selected && !isBorderless)
+                            ? '0 0 0 1px rgba(168, 85, 247, 0.3)'
                             : 'none',
                     }}
                 >
                     <NodeViewContent className="text-box-inner-content" />
                 </div>
-                
+
                 {props.selected && !isBorderless && (
                     <>
                         {/* Corner resize handles */}
@@ -910,7 +930,7 @@ const ResizableTextBoxComponent = (props: any) => {
                                 zIndex: 10,
                             }}
                         />
-                        
+
                         {/* Edge resize handles */}
                         <div
                             className="resize-handle n"
@@ -1076,12 +1096,12 @@ const TextBox = Node.create({
         const heightVal = HTMLAttributes['data-height'];
         const heightStyle = (heightVal && heightVal !== 'auto') ? `min-height: ${heightVal}px;` : '';
         const width = HTMLAttributes['data-width'] || 400;
-        
+
         const boxClass = isBorderless ? 'text-box-borderless' : 'text-box';
         const boxStyle = `width: ${width}px; ${heightStyle}`.trim();
-        
-        return ['div', { 
-            ...HTMLAttributes, 
+
+        return ['div', {
+            ...HTMLAttributes,
             class: boxClass,
             style: boxStyle
         }, 0];
@@ -1095,31 +1115,31 @@ const TextBox = Node.create({
         return {
             setTextBox:
                 () =>
-                ({ commands }) => {
-                    return commands.wrapIn(this.name);
-                },
+                    ({ commands }) => {
+                        return commands.wrapIn(this.name);
+                    },
             toggleTextBox:
                 () =>
-                ({ commands, state, chain }) => {
-                    const { $from } = state.selection;
-                    
-                    // Check if cursor is inside a text box
-                    let isInTextBox = false;
-                    for (let d = $from.depth; d > 0; d--) {
-                        if ($from.node(d).type.name === this.name) {
-                            isInTextBox = true;
-                            break;
+                    ({ commands, state, chain }) => {
+                        const { $from } = state.selection;
+
+                        // Check if cursor is inside a text box
+                        let isInTextBox = false;
+                        for (let d = $from.depth; d > 0; d--) {
+                            if ($from.node(d).type.name === this.name) {
+                                isInTextBox = true;
+                                break;
+                            }
                         }
-                    }
-                    
-                    if (isInTextBox) {
-                        // Remove the text box, keeping the content
-                        return chain().lift(this.name).run();
-                    } else {
-                        // Wrap selection in a text box
-                        return chain().wrapIn(this.name).run();
-                    }
-                },
+
+                        if (isInTextBox) {
+                            // Remove the text box, keeping the content
+                            return chain().lift(this.name).run();
+                        } else {
+                            // Wrap selection in a text box
+                            return chain().wrapIn(this.name).run();
+                        }
+                    },
         };
     },
 });
@@ -1478,8 +1498,8 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                         title="Text Color"
                     >
                         <Palette size={16} />
-                        <div 
-                            className="w-4 h-4 rounded border border-white/20" 
+                        <div
+                            className="w-4 h-4 rounded border border-white/20"
                             style={{ backgroundColor: currentColor }}
                         />
                     </button>
@@ -1576,6 +1596,29 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                             >
                                 <span className="text-lg">◆</span>
                                 <span className="text-sm text-gray-300">Diamond</span>
+                            </button>
+                            <div className="border-t border-white/10 my-2"></div>
+                            <div className="text-xs text-gray-400 mb-2 px-2">Layout</div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (!editor) return;
+                                    const isActive = editor.isActive("bulletList");
+                                    if (!isActive) {
+                                        editor.chain().focus().toggleBulletList().run();
+                                    }
+                                    // Toggle columns attribute between 1 and 2
+                                    const attrs = editor.getAttributes("bulletList");
+                                    const currentCols = attrs.columns || 1;
+                                    editor.commands.updateAttributes("bulletList", {
+                                        columns: currentCols === 2 ? 1 : 2,
+                                    });
+                                    setShowBulletMenu(false);
+                                }}
+                                className="w-full text-left px-3 py-2 hover:bg-white/10 rounded flex items-center gap-3"
+                            >
+                                <span className="text-lg">▥</span>
+                                <span className="text-sm text-gray-300">2 Columns</span>
                             </button>
                         </div>
                     )}
