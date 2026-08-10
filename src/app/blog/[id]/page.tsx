@@ -5,7 +5,7 @@ interface Blog {
     _id?: string;
     id?: string;
     title: string;
-    content?: string;
+    content: string;
     cover_image?: string;
     type?: string;
     created_at?: string;
@@ -57,9 +57,12 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 
     const description = stripHtml(blog.content).slice(0, 160) || "Read this article on Concepts.";
     const updatedAt = blog.updated_at ? new Date(blog.updated_at).getTime() : Date.now();
-    const imageUrl = resolveImageUrl(blog.cover_image) ?? `${siteBase}/concept.png`;
-    const shareImage = new URL(imageUrl, siteBase);
-    shareImage.searchParams.set("v", String(updatedAt));
+    // Use the backend's OG image proxy endpoint — it serves images with
+    // no-cache headers, so LinkedIn/Facebook crawlers always get the latest image.
+    const ogImageUrl = blog.cover_image
+        ? `${backendBase}/blogs/${params.id}/og-image?v=${updatedAt}`
+        : `${siteBase}/concept.png`;
+    const shareImage = new URL(ogImageUrl, siteBase);
 
     const canonicalUrl = `${siteBase}/blog/${params.id}`;
 
