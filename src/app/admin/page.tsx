@@ -8,6 +8,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Plus, LogOut, LayoutDashboard, Image as ImageIcon, Type, Trash2, Loader2, UserPlus, Mail, User, Calendar, MessageSquare, Send, X } from "lucide-react";
 import RichTextEditor from "../../components/RichTextEditor";
+import { externalizeInlineImages, countInlineImages, byteLength, formatBytes } from "../../utils/contentImages";
 
 type BlogItem = { _id?: string; id?: string; title: string; content?: string; type?: string };
 
@@ -201,9 +202,23 @@ export default function AdminPage() {
     }
 
     try {
+      // Pasted images arrive as base64 embedded in the HTML, which can push a
+      // long post past the size the server accepts. Move them out to hosted
+      // URLs first so only text is uploaded with the post.
+      let finalContent = content;
+      if (countInlineImages(content) > 0) {
+        setMsg("Uploading pasted images...");
+        try {
+          finalContent = await externalizeInlineImages(content);
+          setContent(finalContent);
+        } catch (uploadErr) {
+          console.warn("Could not move pasted images to hosted URLs:", uploadErr);
+        }
+      }
+
       const form = new FormData();
       form.append("title", title);
-      form.append("content", content);
+      form.append("content", finalContent);
 
       // Use custom type if selected "other" or typed something
       const finalType = customType || selectedType;
@@ -231,6 +246,19 @@ export default function AdminPage() {
       console.error("Full error:", err);
       console.error("Error response:", err.response);
       let errorMsg = "Failed to process request";
+
+      const status = err.response?.status;
+      const detailText = typeof err.response?.data?.detail === "string" ? err.response.data.detail : "";
+      // Starlette rejects an oversized form field with
+      // "Part exceeded maximum size of 1024KB."; Vercel returns 413.
+      if (status === 413 || detailText.includes("Part exceeded maximum size")) {
+        setMsg(
+          `This post (${formatBytes(byteLength(content))}) is larger than the server accepts. ` +
+          "Add images with the toolbar image button rather than pasting them in, then try again."
+        );
+        return;
+      }
+
       if (err.response?.data?.detail) {
         const detail = err.response.data.detail;
         if (typeof detail === "string") {
@@ -434,6 +462,13 @@ export default function AdminPage() {
                     onChange={(html) => setContent(html)}
                     placeholder="Write your thoughts..."
                   />
+                  {byteLength(content) > 200 * 1024 && (
+                    <p className="mt-2 text-xs text-gray-400">
+                      Post size: {formatBytes(byteLength(content))}
+                      {countInlineImages(content) > 0 &&
+                        ` — ${countInlineImages(content)} pasted image(s) will be uploaded on publish`}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -36,6 +36,37 @@ import {
 } from "lucide-react";
 import { useCallback, useState, useEffect, useRef } from "react";
 import api from "../utils/api";
+import { uploadImageFile } from "../utils/contentImages";
+import type { EditorView } from "@tiptap/pm/view";
+
+// Pasted or dropped image files are uploaded to the backend instead of being
+// embedded as base64 data URLs. Base64 inflates the saved article by megabytes
+// and is what makes long posts fail to upload.
+function imageFilesFrom(data: DataTransfer | null): File[] {
+    if (!data) return [];
+    return Array.from(data.files).filter((file) => file.type.startsWith("image/"));
+}
+
+async function uploadAndInsertImages(view: EditorView, files: File[], at?: number) {
+    let pos = at;
+    for (const file of files) {
+        try {
+            const url = await uploadImageFile(file);
+            const { state } = view;
+            const node = state.schema.nodes.image.create({ src: url });
+            view.dispatch(pos == null ? state.tr.replaceSelectionWith(node) : state.tr.insert(pos, node));
+            if (pos != null) pos += node.nodeSize;
+        } catch (error) {
+            console.error("Image upload failed:", error);
+            alert(
+                `Could not upload "${file.name}".
+
+` +
+                    "Check that you are still logged in as admin and that the backend is reachable."
+            );
+        }
+    }
+}
 
 // Extend TipTap Commands interface for custom commands
 declare module '@tiptap/core' {
@@ -1250,6 +1281,22 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
             attributes: {
                 class: "prose prose-invert max-w-none focus:outline-none min-h-[300px] px-4 py-3",
                 style: "position: relative;",
+            },
+            handlePaste: (view, event) => {
+                const files = imageFilesFrom(event.clipboardData);
+                if (files.length === 0) return false;
+                event.preventDefault();
+                void uploadAndInsertImages(view, files);
+                return true;
+            },
+            handleDrop: (view, event, _slice, moved) => {
+                if (moved) return false;
+                const files = imageFilesFrom(event.dataTransfer);
+                if (files.length === 0) return false;
+                event.preventDefault();
+                const coords = view.posAtCoords({ left: event.clientX, top: event.clientY });
+                void uploadAndInsertImages(view, files, coords?.pos);
+                return true;
             },
         },
     });
