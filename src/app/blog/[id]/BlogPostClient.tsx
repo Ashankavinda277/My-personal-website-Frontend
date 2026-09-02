@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../../../utils/api";
 import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, User, Clock } from "lucide-react";
+import { ArrowLeft, ArrowRight, Calendar, User, Clock, Layers } from "lucide-react";
 import Link from "next/link";
 import { formatDate, calculateReadTime } from "../../../utils/format";
 
@@ -16,6 +16,14 @@ interface Blog {
     type?: string;
     created_at?: string;
     author?: string;
+    series_name?: string;
+    series_part?: number;
+}
+
+interface SeriesPost {
+    id: string;
+    title: string;
+    series_part: number | null;
 }
 
 interface BlogPostClientProps {
@@ -26,6 +34,7 @@ interface BlogPostClientProps {
 export default function BlogPostClient({ blogId, initialBlog }: BlogPostClientProps) {
     const [blog, setBlog] = useState<Blog | null>(initialBlog);
     const [loading, setLoading] = useState(!initialBlog);
+    const [seriesPosts, setSeriesPosts] = useState<SeriesPost[]>([]);
 
     useEffect(() => {
         if (initialBlog) {
@@ -52,6 +61,37 @@ export default function BlogPostClient({ blogId, initialBlog }: BlogPostClientPr
             isMounted = false;
         };
     }, [blogId, initialBlog]);
+
+    // Standalone posts never set series_name, so this stays empty for the
+    // vast majority of posts and no extra request is made.
+    useEffect(() => {
+        if (!blog?.series_name) {
+            setSeriesPosts([]);
+            return;
+        }
+
+        let isMounted = true;
+        api.get(`/blogs/series/${encodeURIComponent(blog.series_name)}/posts`)
+            .then((res) => {
+                if (!isMounted) return;
+                setSeriesPosts(res.data.items || []);
+            })
+            .catch(() => {
+                if (!isMounted) return;
+                setSeriesPosts([]);
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [blog?.series_name]);
+
+    const seriesIndex = useMemo(
+        () => seriesPosts.findIndex((p) => p.id === blogId),
+        [seriesPosts, blogId]
+    );
+    const prevPost = seriesIndex > 0 ? seriesPosts[seriesIndex - 1] : null;
+    const nextPost = seriesIndex >= 0 && seriesIndex < seriesPosts.length - 1 ? seriesPosts[seriesIndex + 1] : null;
 
     const processedContent = useMemo(() => {
         if (!blog?.content) return "";
@@ -203,6 +243,17 @@ export default function BlogPostClient({ blogId, initialBlog }: BlogPostClientPr
                         Back to Articles
                     </Link>
 
+                    {blog.series_name && (
+                        <div className="inline-flex items-center gap-2 mb-4 text-sm text-purple-300">
+                            <Layers size={15} />
+                            <span>
+                                {blog.series_name}
+                                {blog.series_part != null && ` · Part ${blog.series_part}`}
+                                {seriesPosts.length > 0 && ` of ${seriesPosts.length}`}
+                            </span>
+                        </div>
+                    )}
+
                     <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
                         {blog.title}
                     </h1>
@@ -259,6 +310,44 @@ export default function BlogPostClient({ blogId, initialBlog }: BlogPostClientPr
                             dangerouslySetInnerHTML={{ __html: processedContent }}
                         />
                     </div>
+
+                    {(prevPost || nextPost) && (
+                        <div className="border-t border-slate-200 px-6 sm:px-8 md:px-12 py-8">
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                                {blog.series_name} — {seriesPosts.length} part{seriesPosts.length === 1 ? "" : "s"}
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {prevPost && (
+                                    <Link
+                                        href={`/blog/${prevPost.id}`}
+                                        className="flex items-center gap-3 p-4 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 transition-colors group"
+                                    >
+                                        <ArrowLeft size={18} className="text-purple-500 flex-shrink-0 group-hover:-translate-x-1 transition-transform" />
+                                        <div className="min-w-0">
+                                            <div className="text-xs text-slate-400 mb-0.5">
+                                                {prevPost.series_part != null ? `Part ${prevPost.series_part}` : "Previous"}
+                                            </div>
+                                            <div className="text-sm font-medium text-slate-700 truncate">{prevPost.title}</div>
+                                        </div>
+                                    </Link>
+                                )}
+                                {nextPost && (
+                                    <Link
+                                        href={`/blog/${nextPost.id}`}
+                                        className={`flex items-center justify-end text-right gap-3 p-4 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 transition-colors group ${!prevPost ? "sm:col-start-2" : ""}`}
+                                    >
+                                        <div className="min-w-0">
+                                            <div className="text-xs text-slate-400 mb-0.5">
+                                                {nextPost.series_part != null ? `Part ${nextPost.series_part}` : "Next"}
+                                            </div>
+                                            <div className="text-sm font-medium text-slate-700 truncate">{nextPost.title}</div>
+                                        </div>
+                                        <ArrowRight size={18} className="text-purple-500 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+                                    </Link>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </motion.div>
             </div>
         </article>

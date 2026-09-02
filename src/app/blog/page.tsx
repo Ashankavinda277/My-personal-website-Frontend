@@ -15,6 +15,8 @@ interface Blog {
     image_url?: string;
     type?: string;
     created_at?: string;
+    series_name?: string;
+    series_part?: number;
 }
 
 
@@ -184,12 +186,19 @@ export default function BlogPage() {
 
                                                 {/* Content - Bottom on Mobile, Left on Desktop */}
                                                 <div className="flex-1 md:order-1 flex flex-col justify-between">
-                                                    {/* Category Badge */}
-                                                    {blog.type && (
-                                                        <div className="mb-3">
-                                                            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-purple-400">
-                                                                {blog.type}
-                                                            </span>
+                                                    {/* Category / Series Badge */}
+                                                    {(blog.type || blog.series_name) && (
+                                                        <div className="mb-3 flex flex-wrap gap-2">
+                                                            {blog.type && (
+                                                                <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-purple-400">
+                                                                    {blog.type}
+                                                                </span>
+                                                            )}
+                                                            {blog.series_name && (
+                                                                <span className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300">
+                                                                    {blog.series_name}{blog.series_part != null && ` · Part ${blog.series_part}`}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     )}
 

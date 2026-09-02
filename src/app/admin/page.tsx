@@ -10,7 +10,7 @@ import { Plus, LogOut, LayoutDashboard, Image as ImageIcon, Type, Trash2, Loader
 import RichTextEditor from "../../components/RichTextEditor";
 import { externalizeInlineImages, countInlineImages, byteLength, formatBytes } from "../../utils/contentImages";
 
-type BlogItem = { _id?: string; id?: string; title: string; content?: string; type?: string };
+type BlogItem = { _id?: string; id?: string; title: string; content?: string; type?: string; series_name?: string; series_part?: number };
 
 interface ContactMessage {
   _id: string;
@@ -39,29 +39,34 @@ export default function AdminPage() {
   const [replySuccess, setReplySuccess] = useState(false);
   const [replyError, setReplyError] = useState("");
   const [messageFilter, setMessageFilter] = useState<"all" | "new" | "replied">("all");
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'blog' | 'category'; id: string; name?: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'blog' | 'category' | 'series'; id: string; name?: string } | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [updateError, setUpdateError] = useState("");
 
   // State for categories (full objects now)
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  // State for series (same shape as categories)
+  const [seriesList, setSeriesList] = useState<{ id: string; name: string }[]>([]);
 
   // Form States
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedType, setSelectedType] = useState("");
   const [customType, setCustomType] = useState("");
+  // A post only belongs to a series when one is picked here; leaving both
+  // blank keeps it a normal, standalone post.
+  const [selectedSeries, setSelectedSeries] = useState("");
+  const [customSeries, setCustomSeries] = useState("");
+  const [seriesPart, setSeriesPart] = useState("");
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  // Category Form States
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatImage, setNewCatImage] = useState<File | null>(null);
 
   // Inline Editing State
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [tempCatName, setTempCatName] = useState("");
+  const [editingSeriesId, setEditingSeriesId] = useState<string | null>(null);
+  const [tempSeriesName, setTempSeriesName] = useState("");
 
   const [msg, setMsg] = useState("");
   const [catMsg, setCatMsg] = useState("");
@@ -83,9 +88,10 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     try {
-      const [blogsRes, typesRes] = await Promise.all([
+      const [blogsRes, typesRes, seriesRes] = await Promise.all([
         api.get("/blogs"),
-        api.get("/blogs/types").catch(() => ({ data: { items: [] } }))
+        api.get("/blogs/types").catch(() => ({ data: { items: [] } })),
+        api.get("/blogs/series").catch(() => ({ data: { items: [] } }))
       ]);
 
       const blogItems = blogsRes.data.items || blogsRes.data.blogs || blogsRes.data || [];
@@ -93,6 +99,9 @@ export default function AdminPage() {
 
       const typeItems = typesRes.data.items || [];
       setCategories(typeItems);
+
+      const seriesItems = seriesRes.data.items || [];
+      setSeriesList(seriesItems);
     } catch (err) {
       console.error("Failed to load data", err);
     } finally {
@@ -224,6 +233,27 @@ export default function AdminPage() {
       const finalType = customType || selectedType;
       if (finalType) form.append("type", finalType);
 
+      // Always send series fields, even blank - on an edit, an empty string
+      // is what tells the backend to detach the post from its series rather
+      // than leaving it unchanged.
+      const finalSeries = customSeries || selectedSeries;
+      form.append("series_name", finalSeries);
+      form.append("series_part", finalSeries ? seriesPart : "");
+
+      // A newly-typed series name only tags this post until it's registered
+      // in its own collection, so the Manage Series list and future posts'
+      // dropdown would never see it otherwise. create_series dedupes by
+      // name, so this is a no-op when the series already exists.
+      if (customSeries.trim()) {
+        try {
+          const seriesForm = new FormData();
+          seriesForm.append("name", customSeries.trim());
+          await api.post("/blogs/series", seriesForm);
+        } catch (seriesErr) {
+          console.warn("Could not register new series:", seriesErr);
+        }
+      }
+
       if (coverFile) form.append("cover", coverFile);
 
       if (editingId) {
@@ -240,6 +270,9 @@ export default function AdminPage() {
       setContent("");
       setCustomType("");
       setSelectedType("");
+      setCustomSeries("");
+      setSelectedSeries("");
+      setSeriesPart("");
       setCoverFile(null);
       fetchData();
     } catch (err: any) {
@@ -278,6 +311,10 @@ export default function AdminPage() {
     setTitle(blog.title);
     setContent(blog.content || "");
     setSelectedType(blog.type || "");
+    setCustomType("");
+    setSelectedSeries(blog.series_name || "");
+    setCustomSeries("");
+    setSeriesPart(blog.series_part != null ? String(blog.series_part) : "");
     setCoverFile(null); // Can't ensure file exists, but simple editing checks out
 
     // Scroll to top
@@ -290,6 +327,9 @@ export default function AdminPage() {
     setContent("");
     setSelectedType("");
     setCustomType("");
+    setSelectedSeries("");
+    setCustomSeries("");
+    setSeriesPart("");
     setCoverFile(null);
     setMsg("");
   };
@@ -316,6 +356,19 @@ export default function AdminPage() {
       setDeleteConfirm(null);
     } catch (err) {
       setDeleteError("Failed to delete category");
+      setTimeout(() => setDeleteError(""), 3000);
+    }
+  }
+
+  const handleDeleteSeries = async (seriesId: string) => {
+    try {
+      await api.delete(`/blogs/series/${encodeURIComponent(seriesId)}`);
+      fetchData();
+      setDeleteSuccess("Series deleted successfully");
+      setTimeout(() => setDeleteSuccess(""), 3000);
+      setDeleteConfirm(null);
+    } catch (err) {
+      setDeleteError("Failed to delete series");
       setTimeout(() => setDeleteError(""), 3000);
     }
   }
@@ -512,6 +565,41 @@ export default function AdminPage() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
+                  <div>
+                    <label className="form-label">Series (optional — leave blank for a normal post)</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={selectedSeries}
+                        onChange={(e) => setSelectedSeries(e.target.value)}
+                        className="form-input flex-1"
+                      >
+                        <option value="">Not part of a series</option>
+                        {seriesList.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                      </select>
+                      <input
+                        placeholder="Or new..."
+                        value={customSeries}
+                        onChange={(e) => setCustomSeries(e.target.value)}
+                        className="form-input w-1/3"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="form-label">Part #</label>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="1"
+                      value={seriesPart}
+                      onChange={(e) => setSeriesPart(e.target.value)}
+                      disabled={!selectedSeries && !customSeries}
+                      className="form-input w-24 disabled:opacity-40"
+                    />
+                  </div>
+                </div>
+
                 <button
                   type="submit"
                   className={editingId ? "btn-edit" : "btn-primary"}
@@ -603,6 +691,85 @@ export default function AdminPage() {
                 ))}
               </div>
             </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="glass-card"
+            >
+              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                <Type className="text-purple-500" /> Manage Series
+              </h2>
+
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                {seriesList.length === 0 && <p className="text-gray-500 text-sm">No series yet — type a name in the "Series" field on a post to create one.</p>}
+                {seriesList.map(series => (
+                  <div key={series.id} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
+                    {editingSeriesId === series.id ? (
+                      <div className="flex items-center gap-2 w-full">
+                        <input
+                          value={tempSeriesName}
+                          onChange={(e) => setTempSeriesName(e.target.value)}
+                          className="bg-black/20 border border-white/10 rounded px-2 py-1 text-sm text-white w-full focus:outline-none focus:border-purple-500"
+                          autoFocus
+                        />
+                        <button
+                          onClick={async () => {
+                            if (tempSeriesName && tempSeriesName !== series.name) {
+                              try {
+                                const form = new FormData();
+                                form.append("name", tempSeriesName);
+                                await api.put(`/blogs/series/${encodeURIComponent(series.id)}`, form);
+                                fetchData();
+                                setEditingSeriesId(null);
+                              } catch (e) {
+                                setUpdateError("Failed to update series");
+                                setTimeout(() => setUpdateError(""), 3000);
+                              }
+                            } else {
+                              setEditingSeriesId(null);
+                            }
+                          }}
+                          className="p-1 px-2 bg-green-500/10 text-green-500 rounded hover:bg-green-500/20 text-xs font-bold"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingSeriesId(null)}
+                          className="p-1 px-2 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-sm font-medium">{series.name}</span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingSeriesId(series.id);
+                              setTempSeriesName(series.name);
+                            }}
+                            className="p-2 text-blue-400 hover:bg-blue-400/10 rounded transition-colors"
+                            title="Rename"
+                          >
+                            <span className="text-xs uppercase font-bold">Edit</span>
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm({ type: 'series', id: series.id, name: series.name })}
+                            className="p-2 text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
           </div>
 
 
@@ -624,7 +791,14 @@ export default function AdminPage() {
                     <h3 className="font-medium text-white mb-1 line-clamp-1">{blog.title}</h3>
                     <p className="text-xs text-gray-500 mb-3 line-clamp-2">{blog.content}</p>
                     <div className="flex justify-between items-center text-xs">
-                      <span className="bg-white/5 px-2 py-1 rounded text-gray-400">{blog.type || "General"}</span>
+                      <div className="flex gap-2">
+                        <span className="bg-white/5 px-2 py-1 rounded text-gray-400">{blog.type || "General"}</span>
+                        {blog.series_name && (
+                          <span className="bg-purple-500/10 px-2 py-1 rounded text-purple-300">
+                            {blog.series_name}{blog.series_part != null && ` · Part ${blog.series_part}`}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex gap-3">
                         <button
                           onClick={() => handleEdit(blog)}
@@ -880,7 +1054,7 @@ export default function AdminPage() {
                 Confirm Delete
               </h3>
               <p className="text-gray-300 mb-6">
-                Are you sure you want to delete {deleteConfirm.type === 'blog' ? 'this blog post' : 'this category'}
+                Are you sure you want to delete {deleteConfirm.type === 'blog' ? 'this blog post' : deleteConfirm.type === 'series' ? 'this series' : 'this category'}
                 {deleteConfirm.name && <span className="font-semibold text-purple-400"> "{deleteConfirm.name}"</span>}?
                 This action cannot be undone.
               </p>
@@ -895,6 +1069,8 @@ export default function AdminPage() {
                   onClick={() => {
                     if (deleteConfirm.type === 'blog') {
                       handleDelete(deleteConfirm.id);
+                    } else if (deleteConfirm.type === 'series') {
+                      handleDeleteSeries(deleteConfirm.id);
                     } else {
                       handleDeleteCategory(deleteConfirm.id);
                     }
