@@ -302,23 +302,24 @@ body {
   }
 
   /* Light theme prose (for blog reading page) */
-  .prose:not(.prose-invert) p {
+  /* Defaults only: an inline colour picked in the editor must still win. */
+  .prose:not(.prose-invert) p:not([style*="color"]) {
     color: #1e293b !important;
   }
 
-  .prose:not(.prose-invert) li {
+  .prose:not(.prose-invert) li:not([style*="color"]) {
     color: #1e293b !important;
   }
 
-  .prose:not(.prose-invert) ul,
-  .prose:not(.prose-invert) ol {
+  .prose:not(.prose-invert) ul:not([style*="color"]),
+  .prose:not(.prose-invert) ol:not([style*="color"]) {
     color: #1e293b !important;
   }
 
-  .prose:not(.prose-invert) h1,
-  .prose:not(.prose-invert) h2,
-  .prose:not(.prose-invert) h3,
-  .prose:not(.prose-invert) h4 {
+  .prose:not(.prose-invert) h1:not([style*="color"]),
+  .prose:not(.prose-invert) h2:not([style*="color"]),
+  .prose:not(.prose-invert) h3:not([style*="color"]),
+  .prose:not(.prose-invert) h4:not([style*="color"]) {
     color: #0f172a !important;
   }
 

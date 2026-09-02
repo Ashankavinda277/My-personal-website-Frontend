@@ -64,11 +64,23 @@ export default function BlogPostClient({ blogId, initialBlog }: BlogPostClientPr
 
         // --- CLEANUP WYSIWYG EDITOR ARTIFACTS ---
         
-        // 1. Remove inline colors that might override Tailwind's prose classes
-        const textElements = container.querySelectorAll('h1, h2, h3, h4, h5, h6, li, p, span');
-        textElements.forEach((el) => {
-            const element = el as HTMLElement;
-            if (element.style.color) element.style.color = '';
+        // 1. Unpin headings saved with a body-sized font-size mark.
+        // The editor leaves a <span style="font-size: 16px"> behind when a paragraph is
+        // promoted to a heading, which holds the heading at body size. Anything larger
+        // than the body text was a deliberate choice, so only clear the shrinking ones.
+        const BODY_FONT_SIZE_PX = 18;
+        const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        headings.forEach((heading) => {
+            const sized = [heading, ...Array.from(heading.querySelectorAll('*'))];
+            sized.forEach((node) => {
+                const element = node as HTMLElement;
+                const fontSize = element.style?.fontSize;
+                if (!fontSize) return;
+                const px = parseFloat(fontSize);
+                if (fontSize.endsWith('px') && px <= BODY_FONT_SIZE_PX) {
+                    element.style.fontSize = '';
+                }
+            });
         });
 
         // 2. Fix multi-line code blocks that the editor mistakenly formatted as inline <code> instead of <pre><code>

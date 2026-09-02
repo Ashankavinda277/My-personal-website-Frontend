@@ -1225,6 +1225,11 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                 bulletList: false,
                 orderedList: false,
                 listItem: false,
+                // Both are configured explicitly further down. Leaving StarterKit's
+                // copies on would register the extension twice and let its defaults
+                // (notably link openOnClick: true) win.
+                link: false,
+                underline: false,
             }),
             CustomBulletList.configure({
                 HTMLAttributes: {
@@ -1247,7 +1252,6 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
             Color.configure({
                 types: ['textStyle'],
             }),
-            Color,
             ResizableImage,
             TextBox,
             Link.configure({
@@ -1262,6 +1266,10 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         ],
         content: value,
         immediatelyRender: false,
+        // TipTap v3 defaults this to off, so the toolbar never re-evaluated
+        // editor.isActive()/can() when only the cursor moved: active highlights and the
+        // undo/redo disabled states went stale until the next keystroke.
+        shouldRerenderOnTransaction: true,
         onUpdate: ({ editor }) => {
             onChange(editor.getHTML());
             // Update current color from editor
@@ -1362,6 +1370,17 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         input.click();
     }, [editor]);
 
+    // TipTap stores whatever it is given, so a bare "example.com" is saved as a
+    // relative href and resolves against /blog/... on the published page.
+    const normalizeUrl = (url: string) => {
+        const trimmed = url.trim();
+        if (!trimmed) return trimmed;
+        // Leave anchors, root-relative paths and anything already carrying a scheme.
+        if (/^(#|\/|[a-z][a-z0-9+.-]*:)/i.test(trimmed)) return trimmed;
+        if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) return `mailto:${trimmed}`;
+        return `https://${trimmed}`;
+    };
+
     const setLink = useCallback(() => {
         if (!editor) return;
         const previousUrl = editor.getAttributes("link").href;
@@ -1373,7 +1392,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
             return;
         }
 
-        editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+        editor.chain().focus().extendMarkRange("link").setLink({ href: normalizeUrl(url) }).run();
     }, [editor]);
 
     const applyBulletStyle = useCallback((styleClass: string) => {
@@ -1429,6 +1448,31 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
 
         setCurrentFontSize(size);
         setShowFontSizeMenu(false);
+    }, [editor]);
+
+    // Turning a block into a heading must also drop any inline font-size mark on it.
+    // Otherwise the leftover <span style="font-size: 16px"> pins the heading text at
+    // body size and the heading looks identical to a paragraph.
+    const toggleHeadingLevel = useCallback((level: 1 | 2 | 3) => {
+        if (!editor) return;
+
+        const becomingHeading = !editor.isActive("heading", { level });
+        const chain = editor.chain().focus().toggleHeading({ level });
+
+        if (becomingHeading) {
+            const { from, to } = editor.state.selection;
+            const blockStart = editor.state.doc.resolve(from).start();
+            const blockEnd = editor.state.doc.resolve(to).end();
+
+            chain
+                .setTextSelection({ from: blockStart, to: blockEnd })
+                .setMark("textStyle", { fontSize: null })
+                .removeEmptyTextStyle()
+                .setTextSelection({ from, to });
+        }
+
+        chain.run();
+        setCurrentFontSize("default");
     }, [editor]);
 
     if (!editor) {
@@ -1557,7 +1601,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                 {/* Headings */}
                 <button
                     type="button"
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                    onClick={() => toggleHeadingLevel(1)}
                     className={`toolbar-btn ${editor.isActive("heading", { level: 1 }) ? "is-active" : ""}`}
                     title="Heading 1"
                 >
@@ -1565,7 +1609,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                 </button>
                 <button
                     type="button"
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                    onClick={() => toggleHeadingLevel(2)}
                     className={`toolbar-btn ${editor.isActive("heading", { level: 2 }) ? "is-active" : ""}`}
                     title="Heading 2"
                 >
@@ -1573,7 +1617,7 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
                 </button>
                 <button
                     type="button"
-                    onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                    onClick={() => toggleHeadingLevel(3)}
                     className={`toolbar-btn ${editor.isActive("heading", { level: 3 }) ? "is-active" : ""}`}
                     title="Heading 3"
                 >
